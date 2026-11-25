@@ -244,6 +244,29 @@ codesign --verify --verbose .build/release/bochoy-grinder-emulator
 - [`docs/SCENARIOS.md`](docs/SCENARIOS.md)：场景和故障格式。
 - [`docs/IPAD_ACCEPTANCE.md`](docs/IPAD_ACCEPTANCE.md)：通用 BLE 工具验收。
 - [`docs/WEB_ACCEPTANCE.md`](docs/WEB_ACCEPTANCE.md)：Web 与真实 central 验收清单。
+- [`AGENTS.md`](AGENTS.md)：中英文 AI agent 开发规范；Claude Code 通过 `CLAUDE.md` 接入同一文件。
+
+## AI 辅助开发
+
+本仓库使用 Claude Code 辅助开发。该说明只适用于 `bochoy-grinder-emulator`，不延伸为上游 `bochoy-grinder`、Decaid 插件、CRYSTAL 固件或协议文档的开发历史，也不表示 Anthropic 对本项目或设备行为的背书。这不改变项目的版权与 Apache-2.0 许可；AI 辅助不替代代码审查、自动化测试或真实设备验收。
+
+使用其他 AI agent 时，不需要复刻 Claude Code 的专属命令：
+
+1. 让 agent 阅读 [`AGENTS.md`](AGENTS.md#中文)，再按其中顺序阅读协议、领域术语和模拟假设；不支持自动读取该文件的工具，可手动将其内容加载为项目指令。
+2. 修改前运行基线测试并记录结果；如果已有失败，先区分原因，不要叠加修改。
+3. 给 agent 一个边界明确的小任务，要求先写测试并实际观察 Red，再做最小实现达到 Green。
+4. 要求保留既有测试、协议语义和安全边界，不擅自增加依赖或操作已有模拟器进程。
+5. 完成后运行相关测试和完整 `bash Scripts/test.sh`；报告实际命令、真实结果及未验证项，不把未执行的实机验收写成通过。
+
+可直接复制以下**启动提示词**给任意 AI agent：
+
+```text
+请先阅读 `AGENTS.md`、`docs/PROTOCOL.md`、`CONTEXT.md` 和 `docs/ASSUMPTIONS.md`。
+先运行基线测试并说明结果。针对我接下来给出的任务，先写会因缺少目标行为而失败的测试；实际观察 Red 后，再做最小实现达到 Green。
+不要削弱既有测试，不要虚构浏览器或实机结论。完成后列出实际运行的命令、结果和未验证项；不要自行 commit、push 或操作用户已有进程。
+```
+
+完整的中英文规则见 [AGENTS.md](AGENTS.md#中文)。真实 central 验收仍需按 [`docs/WEB_ACCEPTANCE.md`](docs/WEB_ACCEPTANCE.md) 执行。
 
 ## 贡献
 

@@ -244,6 +244,29 @@ See [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) for the detailed boundaries.
 - [`docs/SCENARIOS.md`](docs/SCENARIOS.md): scenario and fault format.
 - [`docs/IPAD_ACCEPTANCE.md`](docs/IPAD_ACCEPTANCE.md): general BLE tool acceptance.
 - [`docs/WEB_ACCEPTANCE.md`](docs/WEB_ACCEPTANCE.md): Web and real-central acceptance checklist.
+- [`AGENTS.md`](AGENTS.md): bilingual AI-agent development guide, imported by Claude Code through `CLAUDE.md`.
+
+## AI-Assisted Development
+
+This repository was developed with Claude Code assistance. This statement applies only to `bochoy-grinder-emulator`; it does not describe the development history of upstream `bochoy-grinder`, the Decaid plugin, CRYSTAL firmware, or the vendored protocol document, and it does not imply endorsement by Anthropic. It does not change the project's copyright or Apache-2.0 license. AI assistance does not replace code review, automated testing, or real-device acceptance.
+
+Other AI agents do not need Claude Code-specific commands:
+
+1. Ask the agent to read [`AGENTS.md`](AGENTS.md#english), then follow its reading order for the protocol, domain vocabulary, and simulation assumptions. For a tool that cannot load the file automatically, provide its contents as project instructions manually.
+2. Run baseline tests before changes and record the results. Distinguish existing failures before adding new changes.
+3. Give the agent one narrowly scoped task and require an observed failing test before the minimal implementation reaches Green.
+4. Require existing tests, protocol semantics, and safety boundaries to remain intact, with no undisclosed dependencies or operations on existing simulator processes.
+5. Run relevant tests and the complete `bash Scripts/test.sh` afterward. Report exact commands, actual results, and unverified items; never describe unexecuted real-device acceptance as passing.
+
+Copy this **starter prompt** for any AI agent:
+
+```text
+Start by reading `AGENTS.md`, `docs/PROTOCOL.md`, `CONTEXT.md`, and `docs/ASSUMPTIONS.md`.
+Run baseline tests and report the results before editing. For the task I provide next, write a test that fails because the target behavior is missing; observe Red before adding the minimal implementation to reach Green.
+Do not weaken existing tests or fabricate browser or real-device conclusions. Finish with the commands actually run, their results, and unverified items. Do not commit, push, or operate on user-started processes without explicit authorization.
+```
+
+The complete bilingual rules are in [AGENTS.md](AGENTS.md#english). Real-central acceptance still follows [`docs/WEB_ACCEPTANCE.md`](docs/WEB_ACCEPTANCE.md).
 
 ## Contributing
 
