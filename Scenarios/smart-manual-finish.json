@@ -1,0 +1,6 @@
+{
+  "name": "smart-manual-finish",
+  "behavior": {
+    "smartDurationMs": null
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "default",
+  "deviceName": "CRYSTAL-E57C",
+  "initialRegisters": {
+    "mtRPM": 900,
+    "xdRPM": 40,
+    "bootSign": 0,
+    "sysState": 0,
+    "servoAngle": 830,
+    "tfAngle": 830
+  },
+  "behavior": {
+    "timedDurationMs": 5000,
+    "smartDurationMs": 5000,
+    "disconnectPolicy": "pause"
+  },
+  "layout": {
+    "includeService": true,
+    "omittedCharacteristics": [],
+    "notifyDisabled": []
+  },
+  "faults": []
+}

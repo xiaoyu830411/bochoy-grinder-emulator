@@ -1,0 +1,83 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+
+const root = path.resolve(__dirname, '../..');
+const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
+
+test('Chinese and English README files are complete, linked and use public repository commands', () => {
+  const chinese = read('README.md');
+  const english = read('README.en.md');
+  assert.match(chinese, /^# Bochoy 磨豆机模拟器/m);
+  assert.match(chinese, /\[English\]\(README\.en\.md\)/);
+  assert.match(english, /^# Bochoy Grinder Emulator/m);
+  assert.match(english, /\[中文\]\(README\.md\)/);
+  for (const document of [chinese, english]) {
+    assert.match(document, /https:\/\/github\.com\/xiaoyu830411\/bochoy-grinder-emulator(?:\.git)?/);
+    assert.match(document, /\.build\/debug\/bochoy-grinder-emulator/);
+    assert.match(document, /Apache(?: License)? 2\.0|Apache-2\.0/);
+    assert.doesNotMatch(document, /\.build\/(?:debug|release)\/crystal-sim/);
+    assert.doesNotMatch(document, /\.\.\/bochoy-grinder/);
+    assert.doesNotMatch(document, /Logs\/web-tdd\.log/);
+  }
+  for (const heading of ['功能', '架构', '环境要求', '快速开始', '测试', '安全', '贡献', 'License']) {
+    assert.match(chinese, new RegExp(`^## .*${heading}`, 'm'), heading);
+  }
+  for (const heading of ['Features', 'Architecture', 'Requirements', 'Quick Start', 'Testing', 'Security', 'Contributing', 'License']) {
+    assert.match(english, new RegExp(`^## .*${heading}`, 'm'), heading);
+  }
+  assert.match(chinese, /中英|English/);
+  assert.match(english, /Chinese|中英/);
+});
+
+test('repository includes the complete Apache License 2.0 and requested copyright', () => {
+  const license = read('LICENSE');
+  assert.match(license, /Apache License\s+Version 2\.0, January 2004/);
+  assert.match(license, /TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION/);
+  assert.match(license, /END OF TERMS AND CONDITIONS/);
+  assert.match(license, /Copyright 2026 xiaoyu830411/);
+  assert.ok(license.length > 10_000, 'full license text is required, not a short license reference');
+  assert.equal(fs.existsSync(path.join(root, 'NOTICE')), false, 'do not invent third-party attribution');
+});
+
+test('protocol reference is vendored with source and version provenance', () => {
+  const protocol = read('docs/PROTOCOL.md');
+  const provenance = `<!--\n来源：bochoy-grinder 仓库 docs/PROTOCOL.md（2026-11-23 本地快照）。\n上游整理日期：2026-11-23；插件包版本：0.2.0。\n仅将未随本仓库发布的 INTERFACE.md 链接改为纯文本，其余协议内容保持原文。\n-->\n\n`;
+  assert.ok(protocol.startsWith(provenance), 'missing exact provenance header');
+  const upstream = protocol.slice(provenance.length).replace(
+    '`INTERFACE.md`（上游文档，未随本仓库发布）',
+    '[INTERFACE.md](INTERFACE.md)',
+  );
+  const actualSHA256 = crypto.createHash('sha256').update(upstream).digest('hex');
+  assert.equal(actualSHA256, '61773a47db3cd1bc6e73d8b82596abe6ace2ae89648e4ff15826272343788a9a');
+  assert.match(protocol, /2026-11-23/);
+  assert.match(protocol, /0\.2\.0/);
+  assert.match(protocol, /7fa2d10c-12f3-4b9e-9d77-1a9b65432100/);
+});
+
+test('all public Markdown relative links remain inside the self-contained repository', () => {
+  const markdownFiles = ['README.md', 'README.en.md', 'CONTEXT.md', ...fs.readdirSync(path.join(root, 'docs'))
+    .filter(name => name.endsWith('.md')).map(name => `docs/${name}`)];
+  for (const file of markdownFiles) {
+    const document = read(file);
+    for (const match of document.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+      const target = match[1].split('#')[0];
+      if (!target || /^(?:https?:|mailto:)/.test(target)) continue;
+      const resolved = path.resolve(path.dirname(path.join(root, file)), target);
+      assert.ok(resolved.startsWith(`${root}${path.sep}`), `${file}: parent-directory dependency ${target}`);
+      assert.ok(fs.existsSync(resolved), `${file}: missing local target ${target}`);
+    }
+  }
+});
+
+test('release ignores contain build products, local metadata and user state', () => {
+  const ignore = read('.gitignore');
+  for (const entry of ['.build/', '.swiftpm/', 'Logs/', '.DS_Store', 'xcuserdata/', '.claude/']) {
+    assert.ok(ignore.split(/\r?\n/).includes(entry), `missing .gitignore entry: ${entry}`);
+  }
+  const manifest = read('Package.swift');
+  assert.doesNotMatch(manifest, /\.package\s*\(\s*path:/, 'local Swift package dependency');
+  assert.equal(fs.existsSync(path.join(root, 'package.json')), false, 'unexpected npm dependency manifest');
+});

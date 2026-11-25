@@ -1,0 +1,28 @@
+{
+  "name": "notification-lab",
+  "faults": [
+    {
+      "id": "delay-first-mt-response",
+      "type": "responseDelay",
+      "characteristic": "MT_RPM",
+      "delayMs": 500,
+      "onOccurrence": 1,
+      "maxTriggers": 1
+    },
+    {
+      "id": "drop-first-sys-notification",
+      "type": "notificationDrop",
+      "characteristic": "SYS_STATE",
+      "onOccurrence": 1,
+      "maxTriggers": 1
+    },
+    {
+      "id": "duplicate-first-servo-notification",
+      "type": "notificationDuplicate",
+      "characteristic": "SERVO_ANGLE",
+      "extraCopies": 1,
+      "onOccurrence": 1,
+      "maxTriggers": 1
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "optional-notify-off",
+  "layout": {
+    "notifyDisabled": ["TF_ANGLE", "XD_RPM"]
+  }
+}

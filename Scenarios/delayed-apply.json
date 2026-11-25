@@ -1,0 +1,10 @@
+{
+  "name": "delayed-apply",
+  "faults": [
+    {
+      "id": "apply-delay-2000",
+      "type": "applyDelay",
+      "delayMs": 2000
+    }
+  ]
+}

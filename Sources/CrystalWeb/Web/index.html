@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="documentTitle">Bochoy 磨豆机模拟器</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="sim-client.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">BOCHOY · GRINDER EMULATOR</p>
+      <h1 data-i18n="documentTitle">Bochoy 磨豆机模拟器</h1>
+    </div>
+    <div class="connection-tools">
+      <span id="event-source-status" class="status-pill" role="status">正在连接事件流</span>
+      <button id="language-toggle" type="button" class="secondary" data-i18n-aria-label="switchLanguage" aria-label="切换为 English">English</button>
+      <label class="token-label" for="token-input" data-i18n="accessToken">访问令牌</label>
+      <input id="token-input" type="password" autocomplete="off" data-i18n-placeholder="tokenPlaceholder" placeholder="仅非本机绑定需要">
+      <button id="token-save" type="button" class="secondary" data-i18n="saveReconnect">保存并重连</button>
+    </div>
+  </header>
+
+  <nav class="tabs" data-i18n-aria-label="narrowView" aria-label="窄屏视图">
+    <button id="tab-controls" type="button" data-tab="controls" data-i18n="controls" aria-controls="control-pane" aria-selected="true">控制</button>
+    <button id="tab-logs" type="button" data-tab="logs" data-i18n="logs" aria-controls="log-pane" aria-selected="false">日志</button>
+  </nav>
+
+  <main class="workspace" data-active-tab="controls">
+    <section id="control-pane" class="pane control-pane" aria-labelledby="control-heading">
+      <div class="pane-heading">
+        <div>
+          <p class="eyebrow">CONTROL</p>
+          <h2 id="control-heading" data-i18n="deviceControl">设备控制</h2>
+        </div>
+        <span id="scenario-name" class="subtle" data-i18n="waitingSnapshot">等待快照</span>
+      </div>
+
+      <section class="card power-card" aria-labelledby="power-heading">
+        <div class="card-heading">
+          <h3 id="power-heading">Device Power</h3>
+          <strong id="power-state" class="state-badge" data-i18n="unknown">未知</strong>
+        </div>
+        <p id="power-note" class="note" data-i18n="powerNoteInitial">Device Power 不是模拟器进程寿命。</p>
+        <div class="button-row">
+          <button id="power-on" data-action="powerOn" data-i18n="powerOn" type="button" class="primary">开机</button>
+          <button id="power-off" data-action="powerOff" data-i18n="powerOff" type="button" class="danger">关闭磨豆机</button>
+        </div>
+        <dl class="status-grid">
+          <div><dt>Bluetooth</dt><dd id="bluetooth-state">—</dd></div>
+          <div><dt data-i18n="advertising">广播</dt><dd id="advertising-state">—</dd></div>
+          <div><dt>Run</dt><dd id="run-state">—</dd></div>
+          <div><dt>Apply</dt><dd id="apply-state">—</dd></div>
+          <div><dt data-i18n="observedSession">观察会话</dt><dd id="session-state">—</dd></div>
+          <div><dt data-i18n="timers">计时器</dt><dd id="timer-state">—</dd></div>
+        </dl>
+        <div class="button-row compact">
+          <button id="advertise-on" data-action="advertising" data-enabled="true" data-i18n="advertiseOn" type="button" class="secondary">开启广播</button>
+          <button id="advertise-off" data-action="advertising" data-enabled="false" data-i18n="advertiseOff" type="button" class="secondary">停止广播</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="registers-heading">
+        <div class="card-heading"><h3 id="registers-heading" data-i18n="protocolRegisters">协议寄存器</h3><span class="subtle" data-i18n="bigEndian">uint16 · 大端</span></div>
+        <div id="register-grid" class="register-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-labelledby="run-heading">
+        <div class="card-heading"><h3 id="run-heading" data-i18n="normalRunControl">正常研磨控制</h3><span class="subtle" data-i18n="sharedModel">与 BLE 共用模型</span></div>
+        <div class="field-row">
+          <label for="run-mode">Run Mode</label>
+          <select id="run-mode">
+            <option value="manual" data-i18n="manualOption">manual · 手动</option>
+            <option value="timed" data-i18n="timedOption">timed · 定时</option>
+            <option value="smart" data-i18n="smartOption">smart · 智能</option>
+          </select>
+          <button data-action="start" data-i18n="startGrinding" type="button" class="primary">启动研磨</button>
+          <button data-action="stop" data-i18n="stopGrinding" type="button" class="danger-soft">停止研磨</button>
+        </div>
+        <div class="setting-grid">
+          <label for="motor-value" data-i18n="motorSettingLabel">MT_RPM 电机转速设定</label>
+          <input id="motor-value" type="number" min="0" max="1500" step="1" value="900">
+          <button data-action="setMT" data-i18n="setMotor" type="button">设置转速</button>
+          <label for="feed-value" data-i18n="feedSettingLabel">XD_RPM 下豆参数</label>
+          <input id="feed-value" type="number" min="0" max="150" step="1" value="40">
+          <button data-action="setXD" data-i18n="setFeed" type="button">设置下豆</button>
+          <label for="target-value" data-i18n="targetSettingLabel">TF_ANGLE 目标研磨度</label>
+          <input id="target-value" type="number" min="0" max="1500" step="1" value="1000">
+          <button data-action="setTF" data-i18n="setTarget" type="button">设置目标</button>
+        </div>
+        <div class="button-row">
+          <button data-action="apply" data-i18n="applyOnce" type="button" class="primary">单独 Apply</button>
+          <button data-action="setTFAndApply" data-i18n="setAndApply" type="button">设置并 Apply</button>
+        </div>
+        <p class="note" data-i18n="applyNontransactionNote">“设置并 Apply”按顺序执行两次写入，不是事务；Apply 失败不会回滚 TF_ANGLE。</p>
+      </section>
+
+      <details class="card advanced">
+        <summary data-i18n="advancedOperations">高级操作与故障注入</summary>
+        <div class="advanced-content">
+          <section aria-labelledby="finish-heading">
+            <h3 id="finish-heading" data-i18n="forceFinish">强制完成</h3>
+            <div class="button-row">
+              <button data-action="finishRun" type="button">finish Run</button>
+              <button data-action="finishApply" type="button">apply-finish</button>
+            </div>
+          </section>
+
+          <section aria-labelledby="override-heading" class="override-zone">
+            <div class="card-heading"><h3 id="override-heading">Test Override</h3><span class="warning-label" data-i18n="nonProtocolBehavior">非协议正常行为</span></div>
+            <div class="setting-grid override-grid">
+              <label for="override-characteristic" data-i18n="characteristic">特征</label>
+              <select id="override-characteristic">
+                <option>MT_RPM</option><option>XD_RPM</option><option>BOOT_SIGN</option>
+                <option>SYS_STATE</option><option>SERVO_ANGLE</option><option>TF_ANGLE</option>
+              </select>
+              <label for="override-value" data-i18n="anyUInt16">任意 uint16</label>
+              <input id="override-value" type="number" min="0" max="65535" step="1" value="0">
+              <label for="override-notification" data-i18n="notificationMode">通知方式</label>
+              <select id="override-notification"><option value="quiet">quiet</option><option value="notify">notify</option></select>
+            </div>
+            <button data-action="override" data-i18n="executeOverride" type="button" class="warning">执行 Test Override</button>
+          </section>
+
+          <section aria-labelledby="session-heading">
+            <h3 id="session-heading">Observed Session</h3>
+            <div class="button-row">
+              <button data-action="sessionBegin" type="button">session-begin</button>
+              <button data-action="sessionEnd" type="button">session-end</button>
+            </div>
+            <p class="note" data-i18n="sessionEndNote">session-end 只执行 Disconnect Policy，不主动断开 BLE。</p>
+          </section>
+
+          <section aria-labelledby="scenario-heading">
+            <h3 id="scenario-heading" data-i18n="builtInScenarios">内置场景</h3>
+            <div class="field-row">
+              <select id="scenario-select" data-i18n-aria-label="builtInScenarios" aria-label="内置场景"></select>
+              <button data-action="scenarioLoad" data-i18n="loadScenario" type="button">加载场景</button>
+              <button data-action="scenarioReset" data-i18n="resetScenario" type="button">重置当前场景</button>
+            </div>
+            <div id="fault-list" class="fault-list"></div>
+          </section>
+        </div>
+      </details>
+
+      <section class="card" aria-labelledby="centrals-heading">
+        <div class="card-heading"><h3 id="centrals-heading">设备活动</h3><span class="subtle" data-i18n="notLiveInventory">不是完整实时连接清单</span></div>
+        <p class="note" data-i18n="deviceActivityNote">Observed Central 来自读写和订阅观察。绿色=正在订阅；黄色=无订阅或已请求断开、断连未确认；蓝色=仅读写；灰色=人工确认已断开。别名按 central UUID 保存在当前浏览器。</p>
+        <section aria-labelledby="current-centrals-heading">
+          <h4 id="current-centrals-heading" class="observation-heading" data-i18n="currentDevices">当前设备</h4>
+          <div id="central-list" class="central-list"></div>
+        </section>
+        <details id="central-history">
+          <summary><span data-i18n="historyRecords">历史记录</span>（<span id="central-history-count">0 条</span>）</summary>
+          <p class="note" data-i18n="historyNote">只有在手机端确认断开后才人工标记；普通取消订阅不会自动进入这里。</p>
+          <div id="central-history-list" class="central-list"></div>
+        </details>
+        <details id="hidden-observations">
+          <summary><span data-i18n="hiddenRecords">已移出</span> <span id="hidden-central-count">0 条</span></summary>
+          <p class="note" data-i18n="hiddenNote">移出在所有浏览器同步，不删除 JSONL、原始事件或别名，也不影响 BLE。</p>
+          <button data-action="restoreHiddenObservations" data-requires-hidden="true" data-i18n="restoreAll" type="button" class="secondary">全部恢复</button>
+          <div id="hidden-central-list" class="central-list"></div>
+        </details>
+      </section>
+      <p id="control-message" class="control-message" role="status"></p>
+    </section>
+
+    <section id="log-pane" class="pane log-pane" aria-labelledby="log-heading">
+      <div class="pane-heading log-heading">
+        <div><p class="eyebrow">EVENTS</p><h2 id="log-heading" data-i18n="liveLogs">实时日志</h2></div>
+        <span id="log-count" class="subtle">0 条</span>
+      </div>
+      <div class="log-filters" data-i18n-aria-label="logFilters" aria-label="日志筛选">
+        <label for="log-kind" data-i18n="kind">类型</label>
+        <select id="log-kind">
+          <option value="all" data-i18n="all">全部</option><option value="write">write</option>
+          <option value="notification">notification</option><option value="subscription">subscription</option>
+          <option value="control">control</option><option value="register">register</option>
+          <option value="apply">apply</option><option value="runMode">runMode</option>
+          <option value="fault">fault</option><option value="error">error</option>
+          <option value="override">override</option><option value="session">session</option>
+        </select>
+        <label for="log-source" data-i18n="source">来源</label>
+        <select id="log-source"><option value="all" data-i18n="all">全部</option><option value="web">web</option><option value="cli">cli</option><option value="ble">ble</option></select>
+        <label for="log-text" class="visually-hidden" data-i18n="searchLogs">搜索日志</label>
+        <input id="log-text" type="search" data-i18n-placeholder="logSearchPlaceholder" placeholder="搜索消息、特征或 faultID">
+        <label class="check-label"><input id="override-only" type="checkbox"> <span data-i18n="overrideOnly">仅 Test Override</span></label>
+        <button id="log-clear" type="button" class="secondary" data-i18n="clearView">清空当前视图</button>
+      </div>
+      <div id="log-stream" class="log-stream" role="log" aria-live="polite" aria-relevant="additions"></div>
+      <aside class="truth-note">
+        <strong data-i18n="acceptanceLimits">验收边界</strong>
+        <span data-i18n="notificationTruth">通知提交不代表手机已收到；取消订阅不等于 Link Loss。</span>
+        <span data-i18n="eventRetentionTruth">磁盘 JSONL 是持久记录，此处仅保留最近 500 条事件。SSE heartbeat 不改变 BLE 状态。</span>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

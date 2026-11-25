@@ -1,0 +1,6 @@
+{
+  "name": "stop-on-session-end",
+  "behavior": {
+    "disconnectPolicy": "stop"
+  }
+}

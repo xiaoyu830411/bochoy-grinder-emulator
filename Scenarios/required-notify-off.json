@@ -1,0 +1,6 @@
+{
+  "name": "required-notify-off",
+  "layout": {
+    "notifyDisabled": ["SYS_STATE"]
+  }
+}
