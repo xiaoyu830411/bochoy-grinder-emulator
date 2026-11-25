@@ -104,8 +104,29 @@ test('protocol reference is vendored with source and version provenance', () => 
   assert.match(protocol, /7fa2d10c-12f3-4b9e-9d77-1a9b65432100/);
 });
 
+test('beta changelog and README release links document verification and honest limits', () => {
+  const changelog = read('CHANGELOG.md');
+  for (const text of ['1.0.0-beta.1', 'v1.0.0-beta.1', '2026-11-25', '## 中文', '## English', '预发布', 'Pre-release', 'bluetoothd unused']) {
+    assert.match(changelog, new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), text);
+  }
+  assert.match(changelog, /干净克隆/);
+  assert.match(changelog, /clean clone/i);
+  assert.match(changelog, /不上传.*二进制|不提供.*二进制/);
+  assert.match(changelog, /no .*binar|without .*binar/i);
+  assert.match(changelog, /实机.*未验证|实机验收.*仍需/);
+  assert.match(changelog, /real-device.*unverified|real-device acceptance.*remain/i);
+
+  for (const file of ['README.md', 'README.en.md']) {
+    const document = read(file);
+    assert.match(document, /\[.*\]\(CHANGELOG\.md\)/, `${file}: changelog link`);
+    assert.match(document, /https:\/\/github\.com\/xiaoyu830411\/bochoy-grinder-emulator\/releases\/tag\/v1\.0\.0-beta\.1/);
+    assert.match(document, /https:\/\/github\.com\/xiaoyu830411\/bochoy-grinder-emulator\/releases/);
+    assert.match(document, /\.build\/debug\/bochoy-grinder-emulator --version/);
+  }
+});
+
 test('all public Markdown relative links remain inside the self-contained repository', () => {
-  const markdownFiles = ['README.md', 'README.en.md', 'CONTEXT.md', 'AGENTS.md', 'CLAUDE.md', ...fs.readdirSync(path.join(root, 'docs'))
+  const markdownFiles = ['README.md', 'README.en.md', 'CHANGELOG.md', 'CONTEXT.md', 'AGENTS.md', 'CLAUDE.md', ...fs.readdirSync(path.join(root, 'docs'))
     .filter(name => name.endsWith('.md')).map(name => `docs/${name}`)];
   for (const file of markdownFiles) {
     const document = read(file);

@@ -5,6 +5,11 @@ setbuf(stdout, nil)
 setbuf(stderr, nil)
 
 let arguments = CommandLine.arguments
+if arguments.count == 2 && arguments[1] == "--version" {
+    print("bochoy-grinder-emulator \(AppVersion.current)")
+    exit(0)
+}
+
 if arguments.contains("--help") {
     print(AppOptions.usage)
     exit(0)

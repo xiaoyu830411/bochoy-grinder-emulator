@@ -30,6 +30,18 @@ test('embedded executable metadata and CLI usage adopt the new name without chan
   const options = read('Sources/CrystalSim/AppOptions.swift');
   assert.match(options, /bochoy-grinder-emulator \[--scenario/);
   assert.match(options, /bochoy-grinder-emulator --permission-probe/);
+  assert.match(options, /bochoy-grinder-emulator --version/);
   assert.match(options, /CRYSTAL_WEB_TOKEN/);
   assert.match(read('Sources/CrystalCore/Scenario.swift'), /CRYSTAL-E57C/);
+});
+
+test('beta runtime version and embedded bundle metadata have one consistent release value', () => {
+  const version = '1.0.0-beta.1';
+  const versionSource = read('Sources/CrystalSim/AppVersion.swift');
+  const declaredVersion = versionSource.match(/static let current = "([^"]+)"/);
+  assert.equal(declaredVersion?.[1], version, 'runtime version constant');
+
+  const plist = read('Resources/Info.plist');
+  assert.match(plist, new RegExp(`<key>CFBundleShortVersionString</key>\\s*<string>${version.replaceAll('.', '\\.')}</string>`));
+  assert.match(plist, /<key>CFBundleVersion<\/key>\s*<string>2<\/string>/);
 });

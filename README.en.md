@@ -6,6 +6,8 @@ A native CRYSTAL BLE GATT peripheral emulator for macOS. It advertises `CRYSTAL-
 
 Repository: <https://github.com/xiaoyu830411/bochoy-grinder-emulator>
 
+Current pre-release: [`1.0.0-beta.1`](https://github.com/xiaoyu830411/bochoy-grinder-emulator/releases/tag/v1.0.0-beta.1) · [Changelog](CHANGELOG.md) · [All Releases](https://github.com/xiaoyu830411/bochoy-grinder-emulator/releases)
+
 > This project is for development and integration testing. It is not real grinder firmware and does not simulate mechanical motion. The original protocol reference is vendored in [`docs/PROTOCOL.md`](docs/PROTOCOL.md) and remains in Chinese.
 
 ## Features
@@ -96,6 +98,8 @@ You can also invoke the built executable directly:
 
 ```bash
 .build/debug/bochoy-grinder-emulator --help
+.build/debug/bochoy-grinder-emulator --version
+# bochoy-grinder-emulator 1.0.0-beta.1
 ```
 
 Enter `help` in the CLI for available commands. Bluetooth initialization and advertising are asynchronous; wait for `advertising started` before scanning from another device. A requested Web listener that cannot bind reports `Web listener failed` and exits nonzero.
@@ -238,6 +242,7 @@ See [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) for the detailed boundaries.
 
 ## Documentation
 
+- [`CHANGELOG.md`](CHANGELOG.md): bilingual release notes and pre-release limitations.
 - [`docs/PROTOCOL.md`](docs/PROTOCOL.md): vendored CRYSTAL BLE protocol snapshot with source and version provenance.
 - [`CONTEXT.md`](CONTEXT.md): domain vocabulary.
 - [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md): simulation assumptions and platform limitations.

@@ -23,9 +23,26 @@ def fail(message, process=None, lines=None):
     raise SystemExit(message)
 
 
+def verify_version():
+    result = subprocess.run(
+        [str(BINARY), "--version"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    expected = "bochoy-grinder-emulator 1.0.0-beta.1\n"
+    if result.returncode != 0 or result.stdout != expected or result.stderr:
+        fail(
+            "--version must print only the release version and exit successfully without starting services",
+            lines=[result.stdout, result.stderr],
+        )
+
+
 def main():
     if not BINARY.exists():
         fail(f"missing {BINARY}; run Scripts/build.sh first")
+    verify_version()
     with tempfile.TemporaryDirectory(prefix="crystal-sim-smoke-") as directory:
         log_path = Path(directory) / "events.jsonl"
         process = subprocess.Popen(

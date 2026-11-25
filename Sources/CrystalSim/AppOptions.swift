@@ -12,6 +12,7 @@ struct AppOptions {
     Usage:
       bochoy-grinder-emulator [--scenario <file.json>] [--name <CRYSTAL-XXXX>] [--json-log <file.jsonl|->] [--web <host:port>]
       bochoy-grinder-emulator --permission-probe
+      bochoy-grinder-emulator --version
 
     Options:
       --scenario       Load a version-1 JSON scenario (defaults to built-in normal behavior).
@@ -20,6 +21,7 @@ struct AppOptions {
       --web           Start same-process HTTP/SSE control on <host:port> (default disabled).
                       Non-loopback binding requires CRYSTAL_WEB_TOKEN.
       --permission-probe  Verify Bluetooth authorization/service publication/advertising, then exit.
+      --version       Print the release version and exit without starting services.
       --help          Show this help.
     """
 
