@@ -132,10 +132,26 @@ def main():
                         )
                         phase = "power-first"
                     elif phase == "power-first" and advertising_starts == 3:
-                        send("power off\npower on\n")
+                        send(
+                            "set MT_RPM 1200 quiet\n"
+                            "set XD_RPM 100 quiet\n"
+                            "set TF_ANGLE 1000 quiet\n"
+                            "set SERVO_ANGLE 900 quiet\n"
+                            "power off\n"
+                            "power on\n"
+                        )
                         phase = "power-second"
                     elif phase == "power-second" and advertising_starts == 4:
-                        send("status\nread SYS_STATE\nquit\n")
+                        send(
+                            "status\n"
+                            "read SYS_STATE\n"
+                            "read MT_RPM\n"
+                            "read XD_RPM\n"
+                            "read TF_ANGLE\n"
+                            "read SERVO_ANGLE\n"
+                            "read BOOT_SIGN\n"
+                            "quit\n"
+                        )
                         phase = "quitting"
                     else:
                         fail("unexpected advertising start", process, lines)
@@ -149,7 +165,7 @@ def main():
         if phase != "quitting" or advertising_starts != 4 or service_publications != 4:
             fail("did not complete startup, reset, advertising and two Device Power restart cycles", lines=lines)
         required = [
-            "TF_ANGLE=830 hex=03 3E base64=Az4=",
+            "TF_ANGLE=0 hex=00 00 base64=AAA=",
             "SYS_STATE=2 hex=00 02 base64=AAI=",
             "XD_RPM=88 hex=00 58 base64=AFg=",
             "No active session; Disconnect Policy was not applied",
@@ -160,9 +176,13 @@ def main():
             "advertise on rejected: Device Powered Off",
             "scenario reload rejected: Device Powered Off",
             "poweredOn=false",
-            "Device Powered On in idle state; settings retained",
+            "Device Powered On in idle state; volatile settings reset, SERVO_ANGLE retained",
             "poweredOn=true",
             "SYS_STATE=0 hex=00 00 base64=AAA=",
+            "MT_RPM=0 hex=00 00 base64=AAA=",
+            "XD_RPM=0 hex=00 00 base64=AAA=",
+            "SERVO_ANGLE=900 hex=03 84 base64=A4Q=",
+            "BOOT_SIGN=0 hex=00 00 base64=AAA=",
             "crystal-sim exiting normally",
         ]
         for expected in required:

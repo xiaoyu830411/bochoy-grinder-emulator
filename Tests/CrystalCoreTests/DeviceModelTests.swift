@@ -12,6 +12,15 @@ final class DeviceModelTests: XCTestCase {
         model.write(UInt16Codec.encode(value), to: characteristic)
     }
 
+    private func stateResetID(in effects: [ModelEffect], delayMs: UInt64 = 5_000) -> UInt64? {
+        for effect in effects {
+            if case .scheduleStateReset(let id, let delay) = effect, delay == delayMs {
+                return id
+            }
+        }
+        return nil
+    }
+
     func testDefaultRegistersAndNormalWriteNotification() {
         let model = makeModel()
         XCTAssertEqual(model.registers, .default)
@@ -104,12 +113,176 @@ final class DeviceModelTests: XCTestCase {
         XCTAssertEqual(model.registers.sysState, 0)
     }
 
+    func testApplySchedulesFiveSecondAutoIdle() {
+        let model = makeModel()
+        _ = write(1000, .tfAngle, to: model)
+        let effects = write(5, .bootSign, to: model)
+        XCTAssertTrue(effects.contains(.notify(characteristic: .sysState, value: 1)))
+        guard let id = stateResetID(in: effects) else { return XCTFail("missing state reset") }
+        XCTAssertEqual(model.pendingStateResetID, id)
+        XCTAssertEqual(model.registers.sysState, 1)
+
+        XCTAssertEqual(
+            model.completeStateReset(id: id),
+            [.notify(characteristic: .sysState, value: 0)]
+        )
+        XCTAssertEqual(model.registers.sysState, 0)
+        XCTAssertNil(model.pendingStateResetID)
+    }
+
+    func testManualStartCancelsApplyAutoIdle() {
+        let model = makeModel()
+        _ = write(1000, .tfAngle, to: model)
+        guard let id = stateResetID(in: write(5, .bootSign, to: model)) else {
+            return XCTFail("missing state reset")
+        }
+        let effects = write(1, .bootSign, to: model)
+        XCTAssertTrue(effects.contains(.cancelStateReset(id: id)))
+        XCTAssertEqual(model.completeStateReset(id: id), [])
+        XCTAssertEqual(model.registers.sysState, 1)
+    }
+
+    func testStopCancelsApplyAutoIdleWithoutSecondNotification() {
+        let model = makeModel()
+        _ = write(1000, .tfAngle, to: model)
+        guard let id = stateResetID(in: write(5, .bootSign, to: model)) else {
+            return XCTFail("missing state reset")
+        }
+        let stopEffects = write(4, .bootSign, to: model)
+        XCTAssertTrue(stopEffects.contains(.cancelStateReset(id: id)))
+        XCTAssertTrue(stopEffects.contains(.notify(characteristic: .sysState, value: 0)))
+        XCTAssertEqual(model.completeStateReset(id: id), [])
+        XCTAssertEqual(model.registers.sysState, 0)
+    }
+
+    func testApplyDuringRunDoesNotScheduleAutoIdle() {
+        let model = makeModel()
+        _ = write(1, .bootSign, to: model)
+        _ = write(1000, .tfAngle, to: model)
+        let effects = write(5, .bootSign, to: model)
+        XCTAssertNil(stateResetID(in: effects))
+        XCTAssertNil(model.pendingStateResetID)
+        XCTAssertEqual(model.registers.sysState, 1)
+    }
+
+    func testRepeatedApplyRestartsAutoIdleTimer() {
+        let model = makeModel()
+        _ = write(1000, .tfAngle, to: model)
+        guard let first = stateResetID(in: write(5, .bootSign, to: model)) else {
+            return XCTFail("missing first state reset")
+        }
+        let secondEffects = write(5, .bootSign, to: model)
+        guard let second = stateResetID(in: secondEffects) else {
+            return XCTFail("missing second state reset")
+        }
+        XCTAssertNotEqual(first, second)
+        XCTAssertTrue(secondEffects.contains(.cancelStateReset(id: first)))
+        XCTAssertEqual(model.completeStateReset(id: first), [])
+        XCTAssertEqual(model.registers.sysState, 1)
+        XCTAssertEqual(model.completeStateReset(id: second), [.notify(characteristic: .sysState, value: 0)])
+    }
+
+    func testPowerOffCancelsApplyAutoIdle() {
+        let model = makeModel()
+        _ = write(1000, .tfAngle, to: model)
+        guard let id = stateResetID(in: write(5, .bootSign, to: model)) else {
+            return XCTFail("missing state reset")
+        }
+        let effects = model.powerOff(source: "test")
+        XCTAssertTrue(effects.contains(.cancelStateReset(id: id)))
+        XCTAssertNil(model.pendingStateResetID)
+        XCTAssertEqual(model.completeStateReset(id: id), [])
+        XCTAssertEqual(model.registers.sysState, 0)
+    }
+
+    func testDelayedApplyCompletionDoesNotClearSysStateEarly() {
+        let scenario = Scenario(
+            name: "delayed-apply",
+            faults: [FaultRule(id: "delay", type: .applyDelay, delayMs: 2_000)]
+        )
+        let model = makeModel(scenario)
+        _ = write(900, .tfAngle, to: model)
+        let effects = write(5, .bootSign, to: model)
+        guard let reset = stateResetID(in: effects), let apply = model.pendingApply else {
+            return XCTFail("missing Apply or state reset")
+        }
+        XCTAssertEqual(model.registers.sysState, 1)
+        _ = model.completeApply(id: apply.id)
+        XCTAssertEqual(model.registers.servoAngle, 900)
+        XCTAssertEqual(model.registers.sysState, 1)
+        XCTAssertEqual(model.pendingStateResetID, reset)
+        XCTAssertEqual(model.completeStateReset(id: reset), [.notify(characteristic: .sysState, value: 0)])
+    }
+
+    func testStateResetFiresDuringApplyStallAndRetainsPendingApply() {
+        let scenario = Scenario(
+            name: "stalled-apply",
+            faults: [FaultRule(id: "stall", type: .applyStall)]
+        )
+        let model = makeModel(scenario)
+        _ = write(900, .tfAngle, to: model)
+        let effects = write(5, .bootSign, to: model)
+        guard let reset = stateResetID(in: effects), let apply = model.pendingApply else {
+            return XCTFail("missing Apply or state reset")
+        }
+        XCTAssertEqual(model.completeApply(id: apply.id), [])
+        XCTAssertNotNil(model.pendingApply)
+        XCTAssertEqual(model.completeStateReset(id: reset), [.notify(characteristic: .sysState, value: 0)])
+        XCTAssertEqual(model.registers.sysState, 0)
+        XCTAssertEqual(model.pendingApply, apply)
+    }
+
+    func testSystemStateOverrideCancelsApplyAutoIdle() {
+        let model = makeModel()
+        _ = write(1000, .tfAngle, to: model)
+        guard let id = stateResetID(in: write(5, .bootSign, to: model)) else {
+            return XCTFail("missing state reset")
+        }
+        let effects = model.overrideRegister(.sysState, value: 2, notify: true)
+        XCTAssertTrue(effects.contains(.cancelStateReset(id: id)))
+        XCTAssertNil(model.pendingStateResetID)
+        XCTAssertEqual(model.completeStateReset(id: id), [])
+        XCTAssertEqual(model.registers.sysState, 2)
+    }
+
+    func testStaleStateResetIDFromReplacedModelDoesNotAffectNewModel() {
+        let old = makeModel()
+        _ = write(1000, .tfAngle, to: old)
+        guard let staleID = stateResetID(in: write(5, .bootSign, to: old)) else {
+            return XCTFail("missing state reset")
+        }
+
+        let replacement = makeModel()
+        XCTAssertNil(replacement.pendingStateResetID)
+        XCTAssertEqual(replacement.completeStateReset(id: staleID), [])
+        XCTAssertEqual(replacement.registers.sysState, 0)
+    }
+
+    func testSessionPauseKeepsApplyAutoIdlePendingUntilResume() {
+        let model = makeModel()
+        _ = write(1000, .tfAngle, to: model)
+        guard let id = stateResetID(in: write(5, .bootSign, to: model)) else {
+            return XCTFail("missing state reset")
+        }
+
+        XCTAssertEqual(model.sessionBegan(source: "test"), [])
+        XCTAssertEqual(model.sessionEnded(source: "test"), [.pauseTimers])
+        XCTAssertTrue(model.timersPaused)
+        XCTAssertEqual(model.pendingStateResetID, id, "pause must not consume or cancel the auto-idle timer")
+
+        XCTAssertEqual(model.sessionBegan(source: "test"), [.resumeTimers])
+        XCTAssertEqual(model.completeStateReset(id: id), [.notify(characteristic: .sysState, value: 0)])
+        XCTAssertEqual(model.registers.sysState, 0)
+    }
+
     func testImmediateApplyUsesTargetWithoutClaimingMechanicalCompletion() {
         let model = makeModel()
         _ = write(1000, .tfAngle, to: model)
         let effects = write(5, .bootSign, to: model)
         XCTAssertEqual(model.registers.servoAngle, 1000)
         XCTAssertNil(model.pendingApply)
+        XCTAssertEqual(model.registers.sysState, 1)
+        XCTAssertNotNil(model.pendingStateResetID)
         XCTAssertTrue(effects.contains(.notify(characteristic: .servoAngle, value: 1000)))
         XCTAssertEqual(model.registers.tfAngle, 1000)
     }
@@ -243,11 +416,18 @@ final class DeviceModelTests: XCTestCase {
             faults: [FaultRule(id: "delay", type: .applyDelay, delayMs: 2_000)]
         )
         let model = makeModel(scenario)
-        _ = write(5, .bootSign, to: model)
+        _ = write(900, .tfAngle, to: model)
+        guard let reset = stateResetID(in: write(5, .bootSign, to: model)) else {
+            return XCTFail("missing state reset")
+        }
         let apply = model.pendingApply!
         let effects = model.overrideRegister(.servoAngle, value: 42, notify: false)
         XCTAssertTrue(effects.contains(.cancelApply(id: apply.id)))
+        XCTAssertTrue(effects.contains(.cancelStateReset(id: reset)))
+        XCTAssertTrue(effects.contains(.notify(characteristic: .sysState, value: 0)))
         XCTAssertNil(model.pendingApply)
+        XCTAssertNil(model.pendingStateResetID)
+        XCTAssertEqual(model.registers.sysState, 0)
         XCTAssertEqual(model.registers.servoAngle, 42)
     }
 

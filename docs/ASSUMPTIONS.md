@@ -12,6 +12,8 @@
 - `BOOT_SIGN=4` 是停止命令；`MT_RPM=0` 不等价于停止。
 - 正常通知按特征去重；相同写入不要求产生通知。
 - 错误长度写入保留当前值且不通知；越界写入忽略、不回写、不通知。
+- 真机冷启动上电后 `SERVO_ANGLE=830`（设备方确认）；模拟器把它作为默认初值。
+- `BOOT_SIGN=1` 的正常在线停止只有 `BOOT_SIGN=4`；`power off/on` 是独立的电源路径。
 - 不设置加密 GATT 访问要求，不增加应用层鉴权。
 - 插件必需/可选订阅语义属于被测客户端；模拟器通过布局场景构造相应成功或失败条件。
 
@@ -21,14 +23,14 @@
 
 | 模拟行为 | 默认选择 |
 |---|---|
-| 上电初值 | `SYS=0`、`SERVO=TF=830`、`MT=900`、`XD=40`、`BOOT=0` |
+| 上电初值 | `SYS=0`、`SERVO=830`、`TF=0`、`MT=0`、`XD=0`、`BOOT=0`；其中 `SERVO=830` 是设备方确认真机值，其余 0 是与观察一致模拟器默认值 |
 | 手动启动 | 立即进入 `SYS=1`，直到收到停止 |
 | 定时 / 智能启动 | 立即进入 `SYS=1`，默认 5 秒自动回到 `0` |
 | 重复启动 | 重新选择 Run Mode 并取代旧计时器 |
 | 停止空闲设备 | 写成功、状态不变、不通知 |
-| Apply | 捕获命令到达时的目标；默认立即更新当前值 |
-| Apply 交错 | 新 Apply 取代旧 Apply；单独修改目标不改变已捕获值 |
-| 停止与 Apply | 停止 Run 不取消 Apply |
+| Apply | 捕获命令到达时的目标；默认立即更新当前值；写 `5` 时 `SYS=1`，无活动 Run 时由 Apply Auto-Idle Timer 5 秒后回 `0`（模拟器兜底，不是真机计时保证）；有活动 Run 时不启动该计时 |
+| Apply 交错 | 新 Apply 取代旧 Apply 并重启其 Auto-Idle Timer；单独修改目标不改变已捕获值 |
+| 停止与 Apply | 停止 Run 不取消 Apply；停止/结束路径同时取消 Auto-Idle Timer |
 | 研磨中修改参数 | 寄存器立即接受；不模拟物理效果何时生效 |
 | `BOOT_SIGN` 读取 | 保留最后已定义命令，保留值不替换它，也不是执行状态 |
 | `BOOT_SIGN` 通知 | 正常流程不发送；Test Override 可强制 |
@@ -37,8 +39,8 @@
 | 新会话首次同步 | 清空去重基线，下一次状态同步可发布未变值；不会主动重放全部寄存器 |
 | Observed Session End | 可配置 `pause / continue / stop`，默认 `pause` |
 | 持久化 | 不保存运行状态，重启由默认文件或场景决定 |
-| Device Power off | 取消 Run/Apply、quiet 进入 `SYS=0`、保留其他设置、停止广播并移除 GATT；不是 Observed Session End，也不保证真实 Link Loss |
-| Device Power on | 新建服务对象、默认恢复广播、进入空闲并保留设置，不恢复旧 Run/Apply |
+| Device Power off | 取消 Run/Apply/Auto-Idle Timer、quiet 进入 `SYS=0`、保留其他设置、停止广播并移除 GATT；不是 Observed Session End，也不保证真实 Link Loss |
+| Device Power on | 新建服务对象、默认恢复广播、进入空闲；易失寄存器 `MT/XD/TF/BOOT` 归 0，仅保留 `SERVO_ANGLE`，不恢复旧 Run/Apply/计时器 |
 | Web 正常写 | 与 BLE 共用正常写模型路径；`writeError` 保留，ATT-only 的 `readError` / `responseDelay` 不伪造到 HTTP |
 | Web “设置并 Apply” | 两次有序写而非事务；Apply 失败保留已经改变的 TF 值 |
 | Web 关机控制 | 除开机外统一 HTTP 409；CLI 显式 Test Override 仍是特殊测试通道 |

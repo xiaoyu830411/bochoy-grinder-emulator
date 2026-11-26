@@ -75,6 +75,11 @@ test('normal-control labels distinguish motor setting, feed parameter and target
   assert.doesNotMatch(html, /data-action="setXD"[^>]*>设置研磨度</);
 });
 
+test('normal-control input defaults match the power-on register defaults', () => {
+  assert.match(html, /id="motor-value"[^>]*value="0"/);
+  assert.doesNotMatch(html, /id="motor-value"[^>]*value="900"/);
+});
+
 test('device activity has visible current devices, collapsed history and globally restorable hidden records', () => {
   assert.match(html, /id="centrals-heading">设备活动</);
   assert.match(html, /当前设备/);

@@ -95,6 +95,8 @@ final class DevicePowerTests: XCTestCase {
             name: "power-on-idle",
             faults: [FaultRule(id: "delay", type: .applyDelay, delayMs: 2_000)]
         ))
+        write(1200, .mtRPM, to: model)
+        write(100, .xdRPM, to: model)
         write(1000, .tfAngle, to: model)
         write(5, .bootSign, to: model)
         write(2, .bootSign, to: model)
@@ -107,14 +109,40 @@ final class DevicePowerTests: XCTestCase {
         XCTAssertEqual(model.registers.sysState, 0)
         XCTAssertNil(model.activeRun)
         XCTAssertNil(model.pendingApply)
+        XCTAssertNil(model.pendingStateResetID)
         XCTAssertFalse(effects.contains(.notify(characteristic: .sysState, value: 0)))
-        XCTAssertEqual(model.registers.tfAngle, 1000)
-        XCTAssertEqual(model.registers.bootSign, 2)
+        XCTAssertEqual(model.registers.mtRPM, 0)
+        XCTAssertEqual(model.registers.xdRPM, 0)
+        XCTAssertEqual(model.registers.tfAngle, 0)
+        XCTAssertEqual(model.registers.bootSign, 0)
+        XCTAssertEqual(model.registers.servoAngle, 830)
         let quietEvent = model.logger.events.last {
             $0.kind == .notification && $0.characteristic == .sysState
         }
         XCTAssertEqual(quietEvent?.details["reason"], "device-power")
         XCTAssertFalse(quietEvent?.testOverride ?? true)
+    }
+
+    func testPowerOnResetsVolatileNotificationBaselinesAndRetainsServo() {
+        let model = makeModel()
+        write(1200, .mtRPM, to: model)
+        write(100, .xdRPM, to: model)
+        write(1000, .tfAngle, to: model)
+        _ = model.overrideRegister(.servoAngle, value: 1000, notify: false)
+        _ = model.powerOff(source: "test")
+
+        _ = model.powerOn(source: "test")
+
+        XCTAssertEqual(model.registers.mtRPM, 0)
+        XCTAssertEqual(model.registers.xdRPM, 0)
+        XCTAssertEqual(model.registers.tfAngle, 0)
+        XCTAssertEqual(model.registers.bootSign, 0)
+        XCTAssertEqual(model.registers.servoAngle, 1000)
+        XCTAssertEqual(
+            model.write(UInt16Codec.encode(1200), to: .mtRPM),
+            [.notify(characteristic: .mtRPM, value: 1200)],
+            "power-on must reset the notification baseline for volatile registers"
+        )
     }
 
     func testPowerOffDoesNotApplyDisconnectPolicyOrEraseSessionObservation() {

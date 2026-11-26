@@ -128,6 +128,13 @@ final class BLEPeripheral: NSObject, @MainActor CBPeripheralManagerDelegate {
                 scheduler.cancel(id: "apply-\(id)")
             case .cancelRun(let id):
                 scheduler.cancel(id: "run-\(id)")
+            case .scheduleStateReset(let id, let delayMs):
+                scheduler.schedule(id: "state-reset-\(id)", delayMs: delayMs) { [weak self] in
+                    guard let self, self.model === effectModel, self.model.poweredOn else { return }
+                    self.execute(self.model.completeStateReset(id: id))
+                }
+            case .cancelStateReset(let id):
+                scheduler.cancel(id: "state-reset-\(id)")
             case .pauseTimers:
                 scheduler.pause()
             case .resumeTimers:

@@ -55,6 +55,16 @@ def check_success(reply, message="control failed"):
     return body["snapshot"]
 
 
+def wait_register(port, register, expected, timeout=6.5):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        snapshot = request(port, "GET", "/api/snapshot")[2]
+        if snapshot["device"]["registers"][register] == expected:
+            return snapshot
+        time.sleep(0.1)
+    raise AssertionError(f"{register} did not become {expected} within {timeout}s")
+
+
 class SimulatorProcess:
     def __init__(self, port, name, extra_args=None, token=None, bind_host="127.0.0.1"):
         self.tempdir = tempfile.TemporaryDirectory(prefix="crystal-web-smoke-")
@@ -194,7 +204,9 @@ def run_main_control_and_sse():
     try:
         snapshot = simulator.wait_http()
         check(snapshot["device"]["poweredOn"] is True, "device should start powered on")
-        check(snapshot["device"]["registers"]["mtRPM"] == 900, "default MT mismatch")
+        for register in ["mtRPM", "xdRPM", "tfAngle", "bootSign", "sysState"]:
+            check(snapshot["device"]["registers"][register] == 0, f"default {register} mismatch")
+        check(snapshot["device"]["registers"]["servoAngle"] == 830, "default SERVO mismatch")
         check(snapshot["centrals"] == [], "unexpected observed centrals")
         check(len(snapshot["availableScenarios"]) >= 7, "scenario catalog incomplete")
         check("advertisingRequested" in snapshot["bluetooth"], "BLE state missing")
@@ -218,9 +230,25 @@ def run_main_control_and_sse():
         check_success(control(port, "setTF", value=1000))
         snapshot = check_success(control(port, "apply"))
         check(snapshot["device"]["registers"]["servoAngle"] == 1000, "Apply did not update SERVO")
+        check(snapshot["device"]["registers"]["sysState"] == 1, "Apply did not enter Device Active")
         snapshot = check_success(control(port, "setTFAndApply", value=950))
         check(snapshot["device"]["registers"]["tfAngle"] == 950, "combined TF write missing")
         check(snapshot["device"]["registers"]["servoAngle"] == 950, "combined Apply missing")
+        check(snapshot["device"]["registers"]["sysState"] == 1, "combined Apply did not stay Device Active")
+        snapshot = wait_register(port, "sysState", 0)
+        check(snapshot["device"]["activeRun"] is None, "Apply auto-idle must not fabricate a Run")
+        check(snapshot["device"]["registers"]["servoAngle"] == 950, "auto-idle changed SERVO")
+
+        check_success(control(port, "sessionBegin"))
+        snapshot = check_success(control(port, "apply"))
+        check(snapshot["device"]["registers"]["sysState"] == 1, "Apply before pause did not enter Device Active")
+        check_success(control(port, "sessionEnd"))
+        time.sleep(6.0)
+        snapshot = request(port, "GET", "/api/snapshot")[2]
+        check(snapshot["device"]["registers"]["sysState"] == 1, "paused Apply auto-idle timer still fired")
+        check_success(control(port, "sessionBegin"))
+        snapshot = wait_register(port, "sysState", 0)
+        check_success(control(port, "sessionEnd"))
 
         for mode in ["manual", "timed", "smart"]:
             snapshot = check_success(control(port, "start", mode=mode))
@@ -292,8 +320,11 @@ def run_main_control_and_sse():
         check(sum(item["event"] == "log" for item in frames) <= 500, "SSE history exceeds 500")
         client.close()
 
+        snapshot = check_success(control(
+            port, "override", characteristic="SERVO_ANGLE", value=999, notification="quiet"
+        ))
+        check(snapshot["device"]["registers"]["servoAngle"] == 999, "SERVO setup for power cycle failed")
         snapshot = check_success(control(port, "powerOff"))
-        retained = snapshot["device"]["registers"]["mtRPM"]
         check(snapshot["device"]["poweredOn"] is False, "powerOff failed")
         off_actions = [
             ("start", {"mode": "manual"}), ("stop", {}), ("setMT", {"value": 1}),
@@ -316,8 +347,9 @@ def run_main_control_and_sse():
         check(request(port, "GET", "/api/snapshot")[0] == 200, "monitoring unavailable while off")
         snapshot = check_success(control(port, "powerOn"))
         check(snapshot["device"]["poweredOn"] is True, "powerOn failed")
-        check(snapshot["device"]["registers"]["mtRPM"] == retained, "power cycle did not retain settings")
-        check(snapshot["device"]["registers"]["sysState"] == 0, "powerOn did not enter idle")
+        for register in ["mtRPM", "xdRPM", "tfAngle", "bootSign", "sysState"]:
+            check(snapshot["device"]["registers"][register] == 0, f"powerOn did not reset {register}")
+        check(snapshot["device"]["registers"]["servoAngle"] == 999, "power cycle did not retain SERVO")
 
         events = [json.loads(line) for line in simulator.log_path.read_text().splitlines()]
         check(any(event["kind"] == "write" and event.get("details", {}).get("source") == "web" for event in events), "Web write source missing")

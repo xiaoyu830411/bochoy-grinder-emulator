@@ -20,7 +20,7 @@ The simulator's explicit model of grinder state and observable transitions, comb
 _Avoid_: Mechanical simulation, high-fidelity firmware emulation
 
 **System State**:
-The grinder's protocol-visible idle or grinding state. Only `0` means idle and `1` means grinding; every other value is unknown, never a safe-idle indication.
+The grinder's protocol-visible idle or device-active state. Only `0` means idle and `1` means device active — a motor Run or an Apply Operation in progress; every other value is unknown, never a safe-idle indication.
 _Avoid_: Connected state, motor-stopped proof
 
 **Current Grind Setting**:
@@ -43,10 +43,11 @@ _Avoid_: Feed RPM, feed rate, dose
 The advertised `CRYSTAL-` name and primary GATT service used to discover the simulated grinder. The display name is not authentication or proof of a physical device's identity.
 
 **Power-on State**:
-The explicit initial register values of a new simulation, either the simulator defaults or values supplied by a Scenario. It makes no claim about a real grinder's power-on values.
+The explicit initial register values of a new simulation, either the simulator defaults or values supplied by a Scenario. The default `SERVO_ANGLE=830` is a vendor-confirmed real-device power-on value; the remaining default zeros are simulator defaults consistent with the observed idle device.
+_Avoid_: Firmware boot image
 
 **Device Power**:
-The simulator-only on/off lifecycle of the virtual grinder, distinct from both System State and simulator process lifetime. Power-off stops advertising, requests disconnection of Observed Centrals, ends the active Run and pending Apply Operation, and disables device controls until power-on. Power-on starts idle, always resumes advertising as a fresh device start, and retains Motor, Feed, Target Grind, and Current Grind Settings. These transitions are Simulation Assumptions, not claims about physical grinder power or safety behavior.
+The simulator-only on/off lifecycle of the virtual grinder, distinct from both System State and simulator process lifetime. Power-off stops advertising, requests disconnection of Observed Centrals, ends the active Run and pending Apply Operation, and disables device controls until power-on. Power-on starts idle, always resumes advertising as a fresh device start, resets the volatile Motor, Feed, Target Grind, and Boot Command registers to zero, and retains only the Current Grind Setting. These transitions are Simulation Assumptions, not claims about physical grinder power or safety behavior.
 _Avoid_: System State, Power-on State, simulator process exit
 
 **Run Mode**:
@@ -92,6 +93,10 @@ _Avoid_: Action acknowledgement, execution status
 **Apply Operation**:
 A deterministic request to make the Current Grind Setting equal to the Target Grind Setting captured when the apply command arrives. A delayed Apply Operation is superseded only by a newer Apply Operation, a Test Override, or a Scenario reset; changing the target alone does not alter the captured value.
 _Avoid_: Completed grind adjustment, transactional setting write
+
+**Apply Auto-Idle Timer**:
+The simulator rule that an Apply Operation with no active Run marks System State device-active and returns it to idle after a fixed five seconds. It is a Simulation Assumption, not a vendor-confirmed timing, and it never runs during an active Run.
+_Avoid_: Real grinder apply duration, mechanical settling time
 
 **Test Override**:
 A local testing action that forces a register value or notification outside the normal BLE command rules, including values undefined by the protocol. It is explicitly recorded as test input and never treated as a normal device transition.

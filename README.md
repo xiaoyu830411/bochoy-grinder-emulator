@@ -114,12 +114,12 @@ bash Scripts/run.sh --permission-probe
 
 | 特征 | 后缀 | 默认值 | 正常写入范围 |
 |---|---|---:|---:|
-| `MT_RPM` | `...0101` | 900 | 0–1500 |
-| `XD_RPM` | `...0102` | 40 | 0–150 |
+| `MT_RPM` | `...0101` | 0 | 0–1500 |
+| `XD_RPM` | `...0102` | 0 | 0–150 |
 | `BOOT_SIGN` | `...0103` | 0 | 固件记录 0–10；仅 1–5 有定义 |
-| `SYS_STATE` | `...0104` | 0 | 插件不写；0=空闲、1=研磨中 |
+| `SYS_STATE` | `...0104` | 0 | 插件不写；0=空闲、1=设备动作中（电机启动或 Apply 调磨） |
 | `SERVO_ANGLE` | `...0105` | 830 | 插件不写 |
-| `TF_ANGLE` | `...0106` | 830 | 0–1500 |
+| `TF_ANGLE` | `...0106` | 0 | 0–1500 |
 
 所有值固定为 **2 字节大端 `uint16`**。base64 只出现在 Decaid 桥日志对照中，不要写入 BLE。
 
@@ -134,7 +134,7 @@ bash Scripts/run.sh --permission-probe
 | 手动 / 定时 / 智能启动 | `BOOT_SIGN` | `00 01` / `00 02` / `00 03` |
 | 停止 | `BOOT_SIGN` | `00 04` |
 
-`TF_ANGLE → BOOT_SIGN=5` 是两次有序写入，不是事务；Apply 失败不会回滚已写入的目标值。ATT 写响应也不表示机械动作完成。
+`TF_ANGLE → BOOT_SIGN=5` 是两次有序写入，不是事务；Apply 失败不会回滚已写入的目标值。ATT 写响应也不表示机械动作完成。写 `5` 后 `SYS_STATE` 变为 `1`；没有活动 Run 时，模拟器按固定的 5 秒 Apply Auto-Idle Timer 把它回 `0`（模拟器兜底规则，不是真机计时保证）。
 
 通用工具检查见 [`docs/IPAD_ACCEPTANCE.md`](docs/IPAD_ACCEPTANCE.md)。
 

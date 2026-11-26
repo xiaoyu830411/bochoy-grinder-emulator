@@ -31,6 +31,26 @@ final class ProtocolTests: XCTestCase {
         XCTAssertEqual(UInt16Codec.decode(slice), 830)
     }
 
+    func testPowerOnDefaultsMatchVendorConfirmedValues() {
+        let values = RegisterValues.default
+        XCTAssertEqual(values.sysState, 0)
+        XCTAssertEqual(values.servoAngle, 830)
+        XCTAssertEqual(values.tfAngle, 0)
+        XCTAssertEqual(values.mtRPM, 0)
+        XCTAssertEqual(values.xdRPM, 0)
+        XCTAssertEqual(values.bootSign, 0)
+    }
+
+    func testDecodeFallbacksMatchPowerOnDefaults() throws {
+        let values = try JSONDecoder().decode(RegisterValues.self, from: Data(#"{"servoAngle": 1000}"#.utf8))
+        XCTAssertEqual(values.sysState, 0)
+        XCTAssertEqual(values.servoAngle, 1000)
+        XCTAssertEqual(values.tfAngle, 0)
+        XCTAssertEqual(values.mtRPM, 0)
+        XCTAssertEqual(values.xdRPM, 0)
+        XCTAssertEqual(values.bootSign, 0)
+    }
+
     func testCharacteristicUUIDsAndRanges() {
         XCTAssertEqual(Characteristic.mtRPM.uuid, "7fa2d10c-12f3-4b9e-9d77-1a9b65432101")
         XCTAssertEqual(Characteristic.xdRPM.uuid, "7fa2d10c-12f3-4b9e-9d77-1a9b65432102")

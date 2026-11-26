@@ -57,9 +57,9 @@
 |---|---|---:|
 | `SYS_STATE` | `00 00` | 0 |
 | `SERVO_ANGLE` | `03 3E` | 830 |
-| `TF_ANGLE` | `03 3E` | 830 |
-| `MT_RPM` | `03 84` | 900 |
-| `XD_RPM` | `00 28` | 40 |
+| `TF_ANGLE` | `00 00` | 0 |
+| `MT_RPM` | `00 00` | 0 |
+| `XD_RPM` | `00 00` | 0 |
 | `BOOT_SIGN` | `00 00` | 0（模拟器假设：最后已定义命令） |
 
 记录 Mac 日志应能看到订阅和读取事件。此时尚不能仅凭 Mac 日志判断 iPad 已收到通知，以 iPad 显示为准。
@@ -73,12 +73,14 @@
 3. 此时读取 `SERVO_ANGLE` 仍应为旧值 `03 3E`。
 4. 向 `BOOT_SIGN` 写 `00 05`。
 5. 预期 `SERVO_ANGLE` 通知为 `04 B0`；回读也为 `04 B0`。
+6. 写 `5` 后 `SYS_STATE` 立即为 `00 01`（没有活动 Run 时）；模拟器约 5 秒后自动回 `00 00`。
 
-恢复默认值可写 `TF_ANGLE = 03 3E`，再写 `BOOT_SIGN = 00 05`。
+恢复默认值可写 `TF_ANGLE = 00 00`，再写 `BOOT_SIGN = 00 05`。
 
 - [ ] 第一步不会提前改变当前值。
 - [ ] 第二步后当前值变为目标值。
 - [ ] 两步各有独立 ATT 写响应，没有应用层“动作完成”应答。
+- [ ] Apply 后 `SYS_STATE` 立即为 `00 01`，约 5 秒后回 `00 00`（模拟器 Apply Auto-Idle 兜底，不是真机计时保证）。
 
 ### 3.2 电机值与下豆值
 
@@ -94,7 +96,7 @@
 
 - 手动：写 `BOOT_SIGN = 00 01`。
   - [ ] `SYS_STATE` 通知/回读为 `00 01`。
-  - [ ] 超过 5 秒仍为研磨中。
+  - [ ] 超过 10 秒仍为 `00 01`（设备动作中），不会自动回 0。
   - [ ] 写 `MT_RPM = 00 00` 后 `SYS_STATE` 仍为 1。
   - [ ] 写 `BOOT_SIGN = 00 04` 后变为 `00 00`。
 - 定时：写 `00 02`。
@@ -163,6 +165,7 @@ set SYS_STATE 0 quiet
 
 - [ ] `SERVO_ANGLE` 最终为 900，不是 1200。
 - [ ] `TF_ANGLE` 保持 1200。
+- [ ] 写 `5` 后 `SYS_STATE` 立即为 `00 01`；Apply 2 秒完成时 `SERVO_ANGLE` 更新，但 `SYS_STATE` 不提前回 0，仍由约 5 秒的 Apply Auto-Idle 兜底回 `00 00`。
 - [ ] 日志可对应捕获目标、Apply ID 和完成事件。
 - [ ] 停止电机不会取消待执行 Apply。
 
@@ -233,7 +236,7 @@ session-end
 
 - [ ] 名称前缀匹配成功。
 - [ ] 主服务校验、必需订阅、可选订阅及初始读取完成。
-- [ ] 厂商状态显示 `connected=true`、`state=idle`、`setting=830`、`rpm=900`、`feed=40`。
+- [ ] 厂商状态显示 `connected=true`、`state=idle`、`setting=830`、`rpm=0`、`feed=0`。
 - [ ] 若检查标准 `/api/v1/grinder/state`，其 `setting` 按 Decaid 约定为字符串 `"830"`，与厂商 status 的数字类型区分。
 - [ ] HTTP/App 成功不被当作额外 BLE 机械完成应答。
 

@@ -84,6 +84,7 @@ final class NormalWritePreparationTests: XCTestCase {
             name: "apply",
             faults: [FaultRule(id: "delay", type: .applyDelay, delayMs: 100)]
         ))
+        _ = applying.write(UInt16Codec.encode(830), to: .tfAngle)
         let result = applying.prepareWrite(UInt16Codec.encode(5), to: .bootSign, source: .web)
         guard let apply = applying.pendingApply else { return XCTFail("missing pending Apply") }
         XCTAssertEqual(result.status, ATTStatus.success)

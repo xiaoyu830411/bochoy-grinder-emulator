@@ -114,12 +114,12 @@ Primary service: `7fa2d10c-12f3-4b9e-9d77-1a9b65432100`
 
 | Characteristic | Suffix | Default | Normal write range |
 |---|---|---:|---:|
-| `MT_RPM` | `...0101` | 900 | 0–1500 |
-| `XD_RPM` | `...0102` | 40 | 0–150 |
+| `MT_RPM` | `...0101` | 0 | 0–1500 |
+| `XD_RPM` | `...0102` | 0 | 0–150 |
 | `BOOT_SIGN` | `...0103` | 0 | Firmware record 0–10; only 1–5 defined |
-| `SYS_STATE` | `...0104` | 0 | Not written by plugin; 0=idle, 1=grinding |
+| `SYS_STATE` | `...0104` | 0 | Not written by plugin; 0=idle, 1=device active (motor run or Apply) |
 | `SERVO_ANGLE` | `...0105` | 830 | Not written by plugin |
-| `TF_ANGLE` | `...0106` | 830 | 0–1500 |
+| `TF_ANGLE` | `...0106` | 0 | 0–1500 |
 
 Every value is a fixed **two-byte big-endian `uint16`**. Base64 appears only in Decaid bridge comparisons; never write base64 text to BLE.
 
@@ -134,7 +134,7 @@ Choose **Write Request / Write With Response** in a general BLE tool:
 | Manual / timed / smart start | `BOOT_SIGN` | `00 01` / `00 02` / `00 03` |
 | Stop | `BOOT_SIGN` | `00 04` |
 
-`TF_ANGLE → BOOT_SIGN=5` consists of two ordered writes, not a transaction. A failed Apply does not roll back the target already written. An ATT write response does not prove mechanical completion.
+`TF_ANGLE → BOOT_SIGN=5` consists of two ordered writes, not a transaction. A failed Apply does not roll back the target already written. An ATT write response does not prove mechanical completion. Writing `5` sets `SYS_STATE` to `1`; with no active Run, the simulator returns it to `0` through a fixed five-second Apply Auto-Idle Timer (a simulator fallback rule, not a real-device timing guarantee).
 
 See [`docs/IPAD_ACCEPTANCE.md`](docs/IPAD_ACCEPTANCE.md) for general BLE tool checks.
 

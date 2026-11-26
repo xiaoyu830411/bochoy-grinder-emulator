@@ -157,7 +157,7 @@
     registerTargetExplanation: { zh: '0–1500；Apply 捕获目标，单独修改不立即改变当前研磨度。', en: '0–1500; Apply captures the target. Changing it alone does not immediately change the current grind setting.' },
     invalidValue: { zh: '值无效', en: 'Invalid value' },
     systemIdle: { zh: '0 = 空闲', en: '0 = Idle' },
-    systemGrinding: { zh: '1 = 研磨中', en: '1 = Grinding' },
+    systemGrinding: { zh: '1 = 设备动作中（电机运行或 Apply 调磨）', en: '1 = Device Active (motor running or Apply)' },
     systemUndefined: { zh: '{value} = 未定义 / Test Override；不能猜成其他状态', en: '{value} = Undefined / Test Override; do not infer another state' },
     bootManual: { zh: '手动启动', en: 'Manual Start' },
     bootTimed: { zh: '定时启动', en: 'Timed Start' },

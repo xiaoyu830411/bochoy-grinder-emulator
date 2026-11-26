@@ -25,7 +25,7 @@ CRYSTAL_WEB_TOKEN='replace-with-a-long-random-token' bash Scripts/run.sh --web 0
 - [ ] 窄屏仍能输入并保存局域网访问令牌。
 - [ ] 六个寄存器均显示中文标题、原始寄存器名、十进制和四位 hex，以及直接可见的简短解释；未知或无效值不伪装成合法 uint16。
 - [ ] MT 显示“电机转速设定”，明确不是刀盘实测转速；XD 显示“下豆参数”，正常控制按钮为“设置下豆”，不再误写为研磨度。
-- [ ] BOOT 1/2/3/4/5 分别解释为手动启动/定时启动/智能启动/停止/Apply；SYS 0=空闲、1=研磨中；其他动态值标为“未定义 / Test Override”，不猜成有效命令或空闲。
+- [ ] BOOT 1/2/3/4/5 分别解释为手动启动/定时启动/智能启动/停止/Apply；SYS 0=空闲、1=设备动作中（电机运行或 Apply 调磨）；其他动态值标为“未定义 / Test Override”，不猜成有效命令或空闲。
 - [ ] SERVO 是当前研磨度寄存器值但不证明机械到位；TF 是 Apply 捕获的目标，单独修改不立即改变当前研磨度；卡片不自行添加物理单位。
 - [ ] 日志可按类型、来源、文本和 Test Override 筛选；“清空当前视图”不删除 JSONL。
 - [ ] 页面没有“退出模拟器”操作，正常控制与 Test Override 分区清晰。
@@ -60,13 +60,13 @@ CRYSTAL_WEB_TOKEN='replace-with-a-long-random-token' bash Scripts/run.sh --web 0
 
 ## 5. Device Power
 
-- [ ] 关机后页面显示“已关机”，停止广播并移除 GATT；Run/Apply 取消，`SYS_STATE=0`。
-- [ ] MT/XD/TF/SERVO/BOOT 等设置保留。
+- [ ] 关机后页面显示“已关机”，停止广播并移除 GATT；Run/Apply/Apply Auto-Idle Timer 取消，`SYS_STATE=0`。
+- [ ] 关机期间 MT/XD/TF/SERVO/BOOT 等设置保留。
 - [ ] 除开机外所有页面设备控制禁用；直接 API 请求也返回 HTTP 409 `Device Powered Off`。
 - [ ] 监控、日志、筛选和别名在关机后仍可使用。
 - [ ] 日志只显示 Disconnect Request / 断连未确认，不显示“手机已断连”。
 - [ ] 开机创建全新 GATT 服务并默认恢复广播，即使关机前执行过广播 off。
-- [ ] 开机进入空闲，保留设置，不恢复关机前 Run/Apply。
+- [ ] 开机进入空闲：MT/XD/TF/BOOT 复位为 0，仅保留 SERVO_ANGLE，不恢复关机前 Run/Apply/计时器。
 - [ ] 关机状态 CLI 显式 Test Override 仍可作为特殊测试通道；场景加载/重置仍被拒绝。
 
 ## 6. 设备活动、人工确认与主动断开

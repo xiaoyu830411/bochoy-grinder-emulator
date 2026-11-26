@@ -53,7 +53,7 @@ bash Scripts/test.sh
 
 - 所有寄存器值固定为 2 字节大端 `uint16`；不要把 base64 文本写入 BLE。
 - `TF_ANGLE → BOOT_SIGN=5` 是两次有序写入，不是事务；Apply 失败不回滚已写入的 TF。
-- `SYS_STATE=1` 表示研磨中；未定义 SYS/BOOT 值必须标为未定义，不得猜成空闲或有效命令。
+- `SYS_STATE=1` 表示设备动作中（电机运行或 Apply 调磨）；未定义 SYS/BOOT 值必须标为未定义，不得猜成空闲或有效命令。
 - `MT_RPM` 是设定/寄存器值，不是已证实的刀盘实测转速；`XD_RPM` 的机械对象和单位仍待厂家确认。
 - HTTP 成功、ATT 写响应和通知提交不证明机械动作完成或对端收到通知。
 - 取消订阅、Observed Session End、Disconnect Request、停止广播和移除服务都不等于 Link Loss。
@@ -165,7 +165,7 @@ Keep each change narrowly scoped. Understand the ownership of `DeviceModel`, BLE
 
 - Every register value is a fixed two-byte big-endian `uint16`; never write base64 text to BLE.
 - `TF_ANGLE → BOOT_SIGN=5` is two ordered writes, not a transaction. A failed Apply does not roll back TF.
-- `SYS_STATE=1` means grinding. Undefined SYS/BOOT values must be labeled undefined, never inferred as idle or a valid command.
+- `SYS_STATE=1` means device active (motor running or Apply in progress). Undefined SYS/BOOT values must be labeled undefined, never inferred as idle or a valid command.
 - `MT_RPM` is a setting/register value, not a proven measured burr speed. The mechanical target and unit of `XD_RPM` still require manufacturer confirmation.
 - HTTP success, an ATT write response, and notification submission do not prove mechanical completion or peer receipt.
 - Unsubscription, Observed Session End, Disconnect Request, stopping advertising, and removing services are not Link Loss.

@@ -3,12 +3,12 @@
   "name": "default",
   "deviceName": "CRYSTAL-E57C",
   "initialRegisters": {
-    "mtRPM": 900,
-    "xdRPM": 40,
+    "mtRPM": 0,
+    "xdRPM": 0,
     "bootSign": 0,
     "sysState": 0,
     "servoAngle": 830,
-    "tfAngle": 830
+    "tfAngle": 0
   },
   "behavior": {
     "timedDurationMs": 5000,

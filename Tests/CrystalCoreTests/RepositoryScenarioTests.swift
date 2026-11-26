@@ -17,5 +17,11 @@ final class RepositoryScenarioTests: XCTestCase {
         for file in files {
             XCTAssertNoThrow(try Scenario.load(from: file), "invalid scenario: \(file.lastPathComponent)")
         }
+
+        let defaultScenario = try Scenario.load(from: directory.appendingPathComponent("default.json"))
+        XCTAssertEqual(defaultScenario.initialRegisters.mtRPM, 0)
+        XCTAssertEqual(defaultScenario.initialRegisters.xdRPM, 0)
+        XCTAssertEqual(defaultScenario.initialRegisters.tfAngle, 0)
+        XCTAssertEqual(defaultScenario.initialRegisters.servoAngle, 830)
     }
 }

@@ -12,12 +12,12 @@ Web 只能选择七个内置目录名，不接受文件路径：`default`、`del
   "name": "example",
   "deviceName": "CRYSTAL-E57C",
   "initialRegisters": {
-    "mtRPM": 900,
-    "xdRPM": 40,
+    "mtRPM": 0,
+    "xdRPM": 0,
     "bootSign": 0,
     "sysState": 0,
     "servoAngle": 830,
-    "tfAngle": 830
+    "tfAngle": 0
   },
   "behavior": {
     "timedDurationMs": 5000,
@@ -40,8 +40,9 @@ Web 只能选择七个内置目录名，不接受文件路径：`default`、`del
 - `smartDurationMs`：智能启动的自动结束时间；设为 `null` 表示等待控制台 `finish`。
 - 行为时长与所有 `delayMs` 的上限均为 `86400000` 毫秒（24 小时），拒绝会造成计时转换溢出的配置。
 - 新启动命令会取消旧 Run 计时器并选择新模式；`BOOT_SIGN=4` 只停止 Run，不取消 Apply。
+- 写 `BOOT_SIGN=5` 进入 `SYS=1`；没有活动 Run 时由固定的 5 秒 Apply Auto-Idle Timer 回 `0`（模拟器兜底，不是真机计时保证）；有活动 Run 时不启动该计时，Run 结束路径负责回 `0`。
 - `disconnectPolicy` 在 **Observed Session End** 时执行：
-  - `pause`：暂停 Apply 与自动 Run 计时器，保留剩余时间，会话恢复后继续；暂停期间新建的 delayed Apply 或自动 Run 计时器也保持冻结，直到恢复。
+  - `pause`：暂停 Apply、自动 Run 与 Apply Auto-Idle 计时器，保留剩余时间，会话恢复后继续；暂停期间新建的 delayed Apply、自动 Run 或 Apply Auto-Idle 计时器也保持冻结，直到恢复。
   - `continue`：计时器继续。
   - `stop`：停止 Run 并令 `SYS_STATE=0`；待执行 Apply 继续。
 
@@ -121,7 +122,7 @@ BLE 与 Web 正常写都经过 `writeError`。Web 注入写拒绝返回 HTTP 422
 
 ### `notificationDrop`
 
-状态照常改变，但不提交匹配通知。去重记录已经推进；不要期待相同值随后自动补发。
+状态照常改变，但不提交匹配通知。去重记录已经推进；不要期待相同值随后自动补发。在 `notification-lab` 中验证“第一条 SYS 通知丢弃”时注意：写 `BOOT_SIGN=5` 产生的 `SYS=1` 通知可能先消费该规则，后续 Run 状态通知不再被丢弃。
 
 ### `notificationDelay`
 
@@ -142,7 +143,7 @@ BLE 与 Web 正常写都经过 `writeError`。Web 注入写拒绝返回 HTTP 422
 
 ### `applyStall`
 
-Apply 到完成点仍保持 pending，不更新当前研磨度。到点的计时器已被消费，关闭故障不会自动重试；控制台 `apply-finish`、新 Apply、Servo Test Override 或重置可以结束该状态。不接受 `characteristic` 或 `value` 过滤。
+Apply 到完成点仍保持 pending，不更新当前研磨度。到点的计时器已被消费，关闭故障不会自动重试；控制台 `apply-finish`、新 Apply、Servo Test Override 或重置可以结束该状态。不接受 `characteristic` 或 `value` 过滤。stall 不阻止 Apply Auto-Idle Timer：写 `5` 后 `SYS=1` 仍在约 5 秒后回 `0`，pending Apply 继续保留。
 
 ### `runStall`
 
@@ -170,5 +171,5 @@ Apply 到完成点仍保持 pending，不更新当前研磨度。到点的计时
 - 场景替换保留独立 Observed Central 观察存储；它不属于 DeviceModel，也不会凭空变成真实连接清单。
 - CoreBluetooth 看不到从未订阅、也尚未读写的外层连接；涉及布局变化时仍应显式断开手机或平板并重启。
 - `session-end` 只执行断连策略，不关闭广播、不取消订阅，也不产生真实 Link Loss。
-- `power off` 不是场景重置：它取消 Run/Apply 并 quiet 进入空闲，但保留 MT/XD/TF/SERVO/BOOT 等设置。`power on` 新建服务、默认恢复广播，不恢复旧操作。
+- `power off` 不是场景重置：它取消 Run/Apply/Apply Auto-Idle Timer 并 quiet 进入空闲，寄存器在关机期间保留。`power on` 新建服务、默认恢复广播，不恢复旧操作或旧计时器，并把易失寄存器 `MT/XD/TF/BOOT` 复位为 0，仅保留 `SERVO_ANGLE`。
 - 真实断连请从手机或平板操作，或使用进程退出故障。

@@ -16,6 +16,8 @@ public enum ModelEffect: Equatable, Sendable {
     case scheduleRun(id: UInt64, delayMs: UInt64)
     case cancelApply(id: UInt64)
     case cancelRun(id: UInt64)
+    case scheduleStateReset(id: UInt64, delayMs: UInt64)
+    case cancelStateReset(id: UInt64)
     case pauseTimers
     case resumeTimers
     case terminateProcess
@@ -51,12 +53,14 @@ public final class DeviceModel {
     public private(set) var registers: RegisterValues
     public private(set) var activeRun: ActiveRun?
     public private(set) var pendingApply: PendingApply?
+    public private(set) var pendingStateResetID: UInt64?
     public private(set) var sessionActive = false
     public private(set) var timersPaused = false
     public private(set) var poweredOn = true
 
     private var runCounter: UInt64 = 0
     private var applyCounter: UInt64 = 0
+    private var stateResetCounter: UInt64 = 0
     private var notificationBaseline: [Characteristic: UInt16] = [:]
 
     public var runMode: RunMode? { activeRun?.mode }
@@ -259,7 +263,7 @@ public final class DeviceModel {
 
     private func start(mode: RunMode) -> [ModelEffect] {
         let previousMode = runMode
-        var effects: [ModelEffect] = []
+        var effects = cancelStateReset()
         if let activeRun {
             effects.append(.cancelRun(id: activeRun.id))
         }
@@ -300,7 +304,7 @@ public final class DeviceModel {
     }
 
     private func stopRun(source: String, testOverride: Bool) -> [ModelEffect] {
-        var effects: [ModelEffect] = []
+        var effects = cancelStateReset()
         let previousMode = runMode
         if let activeRun {
             effects.append(.cancelRun(id: activeRun.id))
@@ -322,6 +326,12 @@ public final class DeviceModel {
 
     private func beginApply() -> [ModelEffect] {
         var effects: [ModelEffect] = []
+        effects.append(contentsOf: setRegister(.sysState, value: 1, source: "apply-start"))
+        if activeRun == nil {
+            effects.append(contentsOf: scheduleStateReset())
+        } else {
+            effects.append(contentsOf: cancelStateReset())
+        }
         if let pendingApply {
             effects.append(.cancelApply(id: pendingApply.id))
             logger.record(
@@ -393,6 +403,27 @@ public final class DeviceModel {
         return effects
     }
 
+    private func scheduleStateReset(delayMs: UInt64 = 5_000) -> [ModelEffect] {
+        var effects = cancelStateReset()
+        stateResetCounter += 1
+        pendingStateResetID = stateResetCounter
+        effects.append(.scheduleStateReset(id: stateResetCounter, delayMs: delayMs))
+        return effects
+    }
+
+    private func cancelStateReset() -> [ModelEffect] {
+        guard let id = pendingStateResetID else { return [] }
+        pendingStateResetID = nil
+        return [.cancelStateReset(id: id)]
+    }
+
+    public func completeStateReset(id: UInt64) -> [ModelEffect] {
+        guard pendingStateResetID == id, poweredOn else { return [] }
+        pendingStateResetID = nil
+        guard activeRun == nil else { return [] }
+        return setRegister(.sysState, value: 0, source: "apply-auto-idle")
+    }
+
     public func completeRun(id: UInt64) -> [ModelEffect] {
         guard let activeRun, activeRun.id == id else { return [] }
         if faults.shouldApply(.runStall) {
@@ -429,6 +460,9 @@ public final class DeviceModel {
     ) -> [ModelEffect] {
         let before = registers
         var effects: [ModelEffect] = []
+        if characteristic == .sysState {
+            effects.append(contentsOf: cancelStateReset())
+        }
         if characteristic == .servoAngle, let pendingApply {
             effects.append(.cancelApply(id: pendingApply.id))
             self.pendingApply = nil
@@ -441,6 +475,15 @@ public final class DeviceModel {
                 testOverride: true,
                 details: ["applyID": String(pendingApply.id)]
             )
+            effects.append(contentsOf: cancelStateReset())
+            if activeRun == nil {
+                effects.append(contentsOf: setRegister(
+                    .sysState,
+                    value: 0,
+                    source: "servo-override-cancels-apply",
+                    testOverride: true
+                ))
+            }
         }
         var overriddenRegisters = registers
         overriddenRegisters[characteristic] = value
@@ -544,7 +587,7 @@ public final class DeviceModel {
         guard poweredOn else { return [] }
         let before = registers
         poweredOn = false
-        var effects: [ModelEffect] = []
+        var effects = cancelStateReset()
         if let activeRun {
             effects.append(.cancelRun(id: activeRun.id))
             self.activeRun = nil
@@ -577,15 +620,20 @@ public final class DeviceModel {
         poweredOn = true
         activeRun = nil
         pendingApply = nil
-        let effects = setRegister(
+        var effects = cancelStateReset()
+        for characteristic: Characteristic in [.mtRPM, .xdRPM, .tfAngle, .bootSign] {
+            registers[characteristic] = 0
+            notificationBaseline[characteristic] = 0
+        }
+        effects.append(contentsOf: setRegister(
             .sysState,
             value: 0,
             source: "device-power-on",
             suppressNotification: true
-        )
+        ))
         logger.record(
             .control,
-            "Device Powered On in idle state; settings retained",
+            "Device Powered On in idle state; volatile settings reset, SERVO_ANGLE retained",
             scenario: scenario.name,
             before: before,
             after: registers,

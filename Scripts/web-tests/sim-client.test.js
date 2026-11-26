@@ -252,11 +252,12 @@ test('BOOT_SIGN and SYS_STATE meanings are dynamic and reserved values are never
   assert.match(Client.describeRegister('bootSign', 0).valueMeaning, /初始/);
   assert.doesNotMatch(Client.describeRegister('bootSign', 0).valueMeaning, /手动启动|停止|Apply/);
   assert.match(Client.describeRegister('sysState', 0).valueMeaning, /^0 = 空闲/);
-  assert.match(Client.describeRegister('sysState', 1).valueMeaning, /^1 = 研磨中/);
+  assert.match(Client.describeRegister('sysState', 1).valueMeaning, /^1 = 设备动作中/);
+  assert.match(Client.describeRegister('sysState', 1).valueMeaning, /电机|Apply/);
   for (const value of [2, 65535]) {
     const meaning = Client.describeRegister('sysState', value).valueMeaning;
     assert.match(meaning, /未定义 \/ Test Override/);
-    assert.doesNotMatch(meaning, /空闲|研磨中/);
+    assert.doesNotMatch(meaning, /空闲|设备动作中/);
   }
   assert.equal(Client.describeRegister('sysState', 1).title, '系统状态');
   assert.equal(Client.describeRegister('bootSign', 1).title, '动作命令');
@@ -316,7 +317,7 @@ test('device activity and all six register cards have complete English presentat
   assert.equal(english.servoAngle.title, 'Current Grind Setting');
   assert.equal(english.tfAngle.title, 'Target Grind Setting');
   assert.equal(english.bootSign.valueMeaning, '1 = Manual Start');
-  assert.equal(english.sysState.valueMeaning, '1 = Grinding');
+  assert.equal(english.sysState.valueMeaning, '1 = Device Active (motor running or Apply)');
   assert.match(Client.describeRegister('sysState', 2, 'en').valueMeaning, /Undefined \/ Test Override/);
   assert.match(Client.describeRegister('bootSign', 6, 'en').valueMeaning, /Undefined \/ Test Override/);
 });

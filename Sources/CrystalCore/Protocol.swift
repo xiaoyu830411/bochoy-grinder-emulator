@@ -66,12 +66,12 @@ public struct RegisterValues: Codable, Equatable, Sendable {
     public var tfAngle: UInt16
 
     public static let `default` = RegisterValues(
-        mtRPM: 900,
-        xdRPM: 40,
+        mtRPM: 0,
+        xdRPM: 0,
         bootSign: 0,
         sysState: 0,
         servoAngle: 830,
-        tfAngle: 830
+        tfAngle: 0
     )
 
     public init(
@@ -120,12 +120,12 @@ public struct RegisterValues: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
-            mtRPM: try container.decodeIfPresent(UInt16.self, forKey: .mtRPM) ?? 900,
-            xdRPM: try container.decodeIfPresent(UInt16.self, forKey: .xdRPM) ?? 40,
+            mtRPM: try container.decodeIfPresent(UInt16.self, forKey: .mtRPM) ?? 0,
+            xdRPM: try container.decodeIfPresent(UInt16.self, forKey: .xdRPM) ?? 0,
             bootSign: try container.decodeIfPresent(UInt16.self, forKey: .bootSign) ?? 0,
             sysState: try container.decodeIfPresent(UInt16.self, forKey: .sysState) ?? 0,
             servoAngle: try container.decodeIfPresent(UInt16.self, forKey: .servoAngle) ?? 830,
-            tfAngle: try container.decodeIfPresent(UInt16.self, forKey: .tfAngle) ?? 830
+            tfAngle: try container.decodeIfPresent(UInt16.self, forKey: .tfAngle) ?? 0
         )
     }
 }
