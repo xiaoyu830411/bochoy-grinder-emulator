@@ -127,6 +127,36 @@ test('beta changelog and README release links document verification and honest l
   }
 });
 
+test('README web console screenshots use clear names and stay within the 1 MB limit', () => {
+  const screenshots = [
+    {
+      source: 'docs/cn.png', target: 'docs/web-console-zh.png', readme: 'README.md',
+      section: '## Web 控制台', launch: '# 打开 http://127.0.0.1:8080/', token: '绑定非 loopback 地址',
+      alt: 'Bochoy 磨豆机模拟器中文 Web 控制台', otherTarget: 'docs/web-console-en.png',
+    },
+    {
+      source: 'docs/en.png', target: 'docs/web-console-en.png', readme: 'README.en.md',
+      section: '## Web Console', launch: '# Open http://127.0.0.1:8080/', token: 'A non-loopback bind',
+      alt: 'Bochoy Grinder Emulator Web console in English', otherTarget: 'docs/web-console-zh.png',
+    },
+  ];
+
+  for (const screenshot of screenshots) {
+    const file = path.join(root, screenshot.target);
+    assert.ok(fs.existsSync(file), `${screenshot.target} must exist`);
+    assert.equal(fs.existsSync(path.join(root, screenshot.source)), false, `${screenshot.source} must be renamed, not duplicated`);
+    const bytes = fs.statSync(file).size;
+    assert.ok(bytes > 0 && bytes <= 1_000_000, `${screenshot.target}: ${bytes} bytes exceeds the limit`);
+
+    const section = read(screenshot.readme).split(screenshot.section)[1]?.split('\n## ')[0] ?? '';
+    const markdown = `![${screenshot.alt}](${screenshot.target})`;
+    assert.ok(section.includes(markdown), `${screenshot.readme}: missing localized console screenshot`);
+    assert.ok(section.indexOf(markdown) > section.indexOf(screenshot.launch), `${screenshot.readme}: image must follow the launch command`);
+    assert.ok(section.indexOf(markdown) < section.indexOf(screenshot.token), `${screenshot.readme}: image must precede the token instructions`);
+    assert.equal(section.includes(screenshot.otherTarget), false, `${screenshot.readme}: wrong-language screenshot`);
+  }
+});
+
 test('all public Markdown relative links remain inside the self-contained repository', () => {
   const markdownFiles = ['README.md', 'README.en.md', 'CHANGELOG.md', 'CONTEXT.md', 'AGENTS.md', 'CLAUDE.md', ...fs.readdirSync(path.join(root, 'docs'))
     .filter(name => name.endsWith('.md')).map(name => `docs/${name}`)];

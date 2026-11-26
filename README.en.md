@@ -147,6 +147,8 @@ bash Scripts/run.sh --web 127.0.0.1:8080
 # Open http://127.0.0.1:8080/
 ```
 
+![Bochoy Grinder Emulator Web console in English](docs/web-console-en.png)
+
 A non-loopback bind requires a non-empty access token:
 
 ```bash

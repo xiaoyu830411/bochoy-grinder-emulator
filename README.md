@@ -147,6 +147,8 @@ bash Scripts/run.sh --web 127.0.0.1:8080
 # 打开 http://127.0.0.1:8080/
 ```
 
+![Bochoy 磨豆机模拟器中文 Web 控制台](docs/web-console-zh.png)
+
 绑定非 loopback 地址必须提供非空访问令牌：
 
 ```bash
