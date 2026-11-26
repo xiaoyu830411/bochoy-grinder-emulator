@@ -157,6 +157,29 @@ test('README web console screenshots use clear names and stay within the 1 MB li
   }
 });
 
+test('completed fix spec is retired after preserving its unique long-term rules', async t => {
+  const assumptions = read('docs/ASSUMPTIONS.md');
+  const acceptance = read('docs/IPAD_ACCEPTANCE.md');
+
+  await t.test('power-on event logging boundary is retained', () => {
+    assert.match(assumptions, /\| Device Power on \|[^\n]*不产生逐寄存器 `register changed` 事件[^\n]*before\/after 快照/);
+  });
+
+  await t.test('internal auto-idle diagnostics remain out of the public Web snapshot', () => {
+    assert.match(assumptions, /`pendingStateResetID`[^\n]*不暴露到 Web snapshot[^\n]*公开诊断字段[^\n]*另行评审/);
+  });
+
+  await t.test('combined BLE acceptance cases are retained', () => {
+    assert.match(acceptance, /`BOOT_SIGN=1`[^\n]*`BOOT_SIGN=5`[^\n]*等待超过 5 秒[^\n]*`SYS_STATE` 保持 `1`[^\n]*`BOOT_SIGN=4`[^\n]*才回 `0`/);
+    assert.match(acceptance, /`BOOT_SIGN=5`[^\n]*`set SYS_STATE 2 notify`[^\n]*等待超过 5 秒[^\n]*`SYS_STATE` 仍为 `2`/);
+    assert.match(acceptance, /`SERVO_ANGLE`[^\n]*非 830[^\n]*`power off` → `power on`[^\n]*`SYS\/MT\/XD\/TF\/BOOT=0`[^\n]*保留 Override 值/);
+  });
+
+  await t.test('one-time implementation spec no longer lives in the current docs', () => {
+    assert.equal(fs.existsSync(path.join(root, 'docs/bochoy-grinder-emulator-fix-spec.md')), false);
+  });
+});
+
 test('all public Markdown relative links remain inside the self-contained repository', () => {
   const markdownFiles = ['README.md', 'README.en.md', 'CHANGELOG.md', 'CONTEXT.md', 'AGENTS.md', 'CLAUDE.md', ...fs.readdirSync(path.join(root, 'docs'))
     .filter(name => name.endsWith('.md')).map(name => `docs/${name}`)];

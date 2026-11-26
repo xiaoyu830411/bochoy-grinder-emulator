@@ -146,6 +146,14 @@ set SYS_STATE 0 quiet
 
 也可用 `notify BOOT_SIGN` 验证强制测试通知；它不属于正常协议行为，测试后重新开始默认场景。
 
+### 5.1 Apply、Run、Override 与电源组合
+
+继续使用已订阅 `SYS_STATE` 的真实 central；Override 和电源命令在 Mac CLI 执行。
+
+- [ ] 先写 `BOOT_SIGN=1`，再写 `BOOT_SIGN=5`：等待超过 5 秒，`SYS_STATE` 保持 `1`；正常在线控制中写 `BOOT_SIGN=4` 才回 `0`。
+- [ ] 先写 `BOOT_SIGN=5`，再执行 `set SYS_STATE 2 notify`：等待超过 5 秒，`SYS_STATE` 仍为 `2`。
+- [ ] 执行 `set SERVO_ANGLE 1000 quiet`，把 `SERVO_ANGLE` 设为非 830 值，再 `power off` → `power on`：六读为 `SYS/MT/XD/TF/BOOT=0`，`SERVO_ANGLE` 保留 Override 值（本例为 1000）。
+
 ## 6. Apply 交错与故障场景
 
 先断开 iPad，停止旧进程，再启动：

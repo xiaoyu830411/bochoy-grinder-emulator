@@ -40,10 +40,11 @@
 | Observed Session End | 可配置 `pause / continue / stop`，默认 `pause` |
 | 持久化 | 不保存运行状态，重启由默认文件或场景决定 |
 | Device Power off | 取消 Run/Apply/Auto-Idle Timer、quiet 进入 `SYS=0`、保留其他设置、停止广播并移除 GATT；不是 Observed Session End，也不保证真实 Link Loss |
-| Device Power on | 新建服务对象、默认恢复广播、进入空闲；易失寄存器 `MT/XD/TF/BOOT` 归 0，仅保留 `SERVO_ANGLE`，不恢复旧 Run/Apply/计时器 |
+| Device Power on | 新建服务对象、默认恢复广播、进入空闲；易失寄存器 `MT/XD/TF/BOOT` 归 0，仅保留 `SERVO_ANGLE`，不恢复旧 Run/Apply/计时器；复位不产生逐寄存器 `register changed` 事件，由电源控制事件的 before/after 快照记录变化 |
 | Web 正常写 | 与 BLE 共用正常写模型路径；`writeError` 保留，ATT-only 的 `readError` / `responseDelay` 不伪造到 HTTP |
 | Web “设置并 Apply” | 两次有序写而非事务；Apply 失败保留已经改变的 TF 值 |
 | Web 关机控制 | 除开机外统一 HTTP 409；CLI 显式 Test Override 仍是特殊测试通道 |
+| Web 诊断边界 | 内部 `pendingStateResetID` 不暴露到 Web snapshot；新增公开诊断字段须另行评审 |
 
 `SYS_STATE` 的未定义值只能由异常初值或 Test Override 构造。它们不表示安全空闲。
 
