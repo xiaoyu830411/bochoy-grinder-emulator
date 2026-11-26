@@ -6,7 +6,7 @@
 
 仓库：<https://github.com/xiaoyu830411/bochoy-grinder-emulator>
 
-当前预发布：[`1.0.0-beta.1`](https://github.com/xiaoyu830411/bochoy-grinder-emulator/releases/tag/v1.0.0-beta.1) · [变更记录](CHANGELOG.md) · [全部 Releases](https://github.com/xiaoyu830411/bochoy-grinder-emulator/releases)
+当前预发布：[`1.0.0-beta.2`](https://github.com/xiaoyu830411/bochoy-grinder-emulator/releases/tag/v1.0.0-beta.2) · [变更记录](CHANGELOG.md) · [全部 Releases](https://github.com/xiaoyu830411/bochoy-grinder-emulator/releases)
 
 > 本项目用于开发与集成测试，不是真实磨豆机固件，也不模拟机械动作。原始协议见 [`docs/PROTOCOL.md`](docs/PROTOCOL.md)。
 
@@ -99,7 +99,7 @@ bash Scripts/run.sh --permission-probe
 ```bash
 .build/debug/bochoy-grinder-emulator --help
 .build/debug/bochoy-grinder-emulator --version
-# bochoy-grinder-emulator 1.0.0-beta.1
+# bochoy-grinder-emulator 1.0.0-beta.2
 ```
 
 启动 CLI 后输入 `help` 查看命令。macOS 蓝牙初始化和广播是异步的；看到 `advertising started` 后再从另一台设备扫描。请求 Web 监听但绑定失败时会输出 `Web listener failed` 并非零退出。

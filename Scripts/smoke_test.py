@@ -31,7 +31,7 @@ def verify_version():
         timeout=5,
         check=False,
     )
-    expected = "bochoy-grinder-emulator 1.0.0-beta.1\n"
+    expected = "bochoy-grinder-emulator 1.0.0-beta.2\n"
     if result.returncode != 0 or result.stdout != expected or result.stderr:
         fail(
             "--version must print only the release version and exit successfully without starting services",

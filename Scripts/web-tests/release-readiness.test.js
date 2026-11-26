@@ -106,7 +106,7 @@ test('protocol reference is vendored with source and version provenance', () => 
 
 test('beta changelog and README release links document verification and honest limits', () => {
   const changelog = read('CHANGELOG.md');
-  for (const text of ['1.0.0-beta.1', 'v1.0.0-beta.1', '2026-11-25', '## 中文', '## English', '预发布', 'Pre-release', 'bluetoothd unused']) {
+  for (const text of ['1.0.0-beta.1', 'v1.0.0-beta.1', '2026-11-25', '1.0.0-beta.2', 'v1.0.0-beta.2', '2026-11-26', '## 中文', '## English', '预发布', 'Pre-release', 'bluetoothd unused']) {
     assert.match(changelog, new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), text);
   }
   assert.match(changelog, /干净克隆/);
@@ -115,11 +115,13 @@ test('beta changelog and README release links document verification and honest l
   assert.match(changelog, /no .*binar|without .*binar/i);
   assert.match(changelog, /实机.*未验证|实机验收.*仍需/);
   assert.match(changelog, /real-device.*unverified|real-device acceptance.*remain/i);
+  assert.match(changelog, /Apply Auto-Idle/);
+  assert.match(changelog, /SERVO_ANGLE/);
 
   for (const file of ['README.md', 'README.en.md']) {
     const document = read(file);
     assert.match(document, /\[.*\]\(CHANGELOG\.md\)/, `${file}: changelog link`);
-    assert.match(document, /https:\/\/github\.com\/xiaoyu830411\/bochoy-grinder-emulator\/releases\/tag\/v1\.0\.0-beta\.1/);
+    assert.match(document, /https:\/\/github\.com\/xiaoyu830411\/bochoy-grinder-emulator\/releases\/tag\/v1\.0\.0-beta\.2/);
     assert.match(document, /https:\/\/github\.com\/xiaoyu830411\/bochoy-grinder-emulator\/releases/);
     assert.match(document, /\.build\/debug\/bochoy-grinder-emulator --version/);
   }

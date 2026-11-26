@@ -36,12 +36,12 @@ test('embedded executable metadata and CLI usage adopt the new name without chan
 });
 
 test('beta runtime version and embedded bundle metadata have one consistent release value', () => {
-  const version = '1.0.0-beta.1';
+  const version = '1.0.0-beta.2';
   const versionSource = read('Sources/CrystalSim/AppVersion.swift');
   const declaredVersion = versionSource.match(/static let current = "([^"]+)"/);
   assert.equal(declaredVersion?.[1], version, 'runtime version constant');
 
   const plist = read('Resources/Info.plist');
   assert.match(plist, new RegExp(`<key>CFBundleShortVersionString</key>\\s*<string>${version.replaceAll('.', '\\.')}</string>`));
-  assert.match(plist, /<key>CFBundleVersion<\/key>\s*<string>2<\/string>/);
+  assert.match(plist, /<key>CFBundleVersion<\/key>\s*<string>3<\/string>/);
 });
